@@ -1,0 +1,230 @@
+package persistence
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+
+	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/entity"
+	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/repository"
+	"{{AppName}}/pkg/core/app"
+	"{{AppName}}/pkg/core/cache"
+	"{{AppName}}/pkg/core/config"
+)
+
+type {{SingularCapitalName}}RepositoryImpl struct {
+	app *app.App
+}
+
+// New{{SingularCapitalName}}Repository returns a new instance of {{SingularCapitalName}}RepositoryImpl
+func New{{SingularCapitalName}}Repository(app *app.App) repository.{{SingularCapitalName}}Repository {
+	return &{{SingularCapitalName}}RepositoryImpl{
+		app: app,
+	}
+}
+
+func CacheClear(req *http.Request, cache cache.CacheService) error {
+	ctx := req.Context()
+	if _, err := cache.ClearPattern(ctx, "get_all_{{SingularLowerName}}s_*"); err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetAll{{SingularCapitalName}}s returns all {{SingularLowerName}}s from the database
+func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}s(req *http.Request) (*entity.{{SingularCapitalName}}ResponsePagination, error) {
+	// Implement logic to get all {{SingularLowerName}}s
+	ctx := req.Context()
+	cacheKey := fmt.Sprintf("get_all_{{SingularLowerName}}s_%s", req.URL.Query().Encode()) // Encode query parameters
+	if cachedData, errCache := r.app.Cache.Get(ctx, cacheKey); errCache == nil && cachedData != "" {
+		{{SingularLowerName}}s := &entity.{{SingularCapitalName}}ResponsePagination{}
+		if err := json.Unmarshal([]byte(cachedData), {{SingularLowerName}}s); err != nil {
+			return &entity.{{SingularCapitalName}}ResponsePagination{}, err
+		}
+		return {{SingularLowerName}}s, nil
+	}
+
+	{{SingularLowerName}}s := []*entity.Response{{SingularCapitalName}}{}
+	query := "SELECT id, name, status, created_at FROM {{SingularLowerName}}s" // Example SQL query
+
+	// Get database connection from pool
+	conn, err := r.app.DB.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+
+	// Perform the query
+	rows, err := conn.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Iterate over the rows and parse the results
+	for rows.Next() {
+		var {{SingularLowerName}} entity.Response{{SingularCapitalName}}
+		err := rows.Scan(&{{SingularLowerName}}.ID, &{{SingularLowerName}}.Name, &{{SingularLowerName}}.Status, &{{SingularLowerName}}.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		{{SingularLowerName}}s = append({{SingularLowerName}}s, &{{SingularLowerName}})
+	}
+
+	// Check for errors from iterating over rows
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	response := entity.{{SingularCapitalName}}ResponsePagination{
+		Data: {{SingularLowerName}}s,
+		// Other pagination details can be set here
+	}
+
+	// Cache the response
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		return &entity.{{SingularCapitalName}}ResponsePagination{}, err
+	}
+	if err := r.app.Cache.Set(ctx, cacheKey, string(jsonData), time.Duration(config.GlobalConfig.RedisExp)*time.Second); err != nil {
+		return &entity.{{SingularCapitalName}}ResponsePagination{}, err
+	}
+	return &response, nil
+}
+
+
+// Get{{SingularCapitalName}}ByID returns a {{SingularLowerName}} by ID from the database
+func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}ByID({{SingularLowerName}}ID uint) (*entity.{{SingularCapitalName}}, error) {
+	// Implement logic to get {{SingularLowerName}} by ID
+	{{SingularLowerName}} := &entity.{{SingularCapitalName}}{}
+	if err := r.app.DB.QueryRow(context.Background(), "SELECT id, name, phone FROM {{SingularLowerName}}s WHERE id = $1", {{SingularLowerName}}ID).Scan(&{{SingularLowerName}}.ID); err != nil {
+		return nil, fmt.Errorf("{{SingularLowerName}} not found")
+	}
+	return {{SingularLowerName}}, nil
+}
+
+// Get{{SingularCapitalName}} returns a {{SingularLowerName}} by ID from the database
+func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}({{SingularLowerName}}ID uint) (*entity.Response{{SingularCapitalName}}, error) {
+	// Implement logic to get {{SingularLowerName}} by ID
+	res{{SingularCapitalName}} := &entity.Response{{SingularCapitalName}}{}
+	query := "SELECT id, name, phone FROM {{SingularLowerName}}s WHERE id = $1"
+	if err := r.app.DB.QueryRow(context.Background(), query, {{SingularLowerName}}ID).Scan(&res{{SingularCapitalName}}.ID, &res{{SingularCapitalName}}.Name); err != nil {
+		return nil, fmt.Errorf("{{SingularLowerName}} not found")
+	}
+	return res{{SingularCapitalName}}, nil
+}
+
+func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}Details({{SingularLowerName}}ID uint) (*entity.Response{{SingularCapitalName}}, error) {
+	// Implement logic to get {{SingularLowerName}} details by ID
+	res{{SingularCapitalName}} := &entity.Response{{SingularCapitalName}}{}
+	err := r.app.DB.QueryRow(context.Background(), `
+		SELECT u.id, u.name, u.status
+		FROM {{SingularLowerName}}s u
+		WHERE u.id = $1
+	`, {{SingularLowerName}}ID).Scan(&res{{SingularCapitalName}}.ID, &res{{SingularCapitalName}}.Name, &res{{SingularCapitalName}}.Status)
+	if err != nil {
+		return nil, fmt.Errorf("{{SingularLowerName}} not found")
+	}
+	return res{{SingularCapitalName}}, nil
+}
+
+func (r *{{SingularCapitalName}}RepositoryImpl) Create{{SingularCapitalName}}({{SingularLowerName}} *entity.{{SingularCapitalName}}, req *http.Request) error {
+	// Begin a transaction
+	tx, err := r.app.DB.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			// Recover from panic and rollback the transaction
+			tx.Rollback(context.Background())
+		} else if err := tx.Commit(context.Background()); err != nil {
+			// Commit the transaction if no error occurred, otherwise rollback
+			tx.Rollback(context.Background())
+		}
+	}()
+
+	// Create the {{SingularLowerName}} within the transaction
+	_, err = tx.Exec(context.Background(), `
+		INSERT INTO {{SingularLowerName}}s (name) VALUES ($1, $2, $3)
+	`, {{SingularLowerName}}.Name)
+	if err != nil {
+		tx.Rollback(context.Background())
+		return err
+	}
+
+	// Clear cache
+	if err := CacheClear(req, r.app.Cache); err != nil {
+		tx.Rollback(context.Background())
+		return err
+	}
+
+	return nil
+}
+
+func (r *{{SingularCapitalName}}RepositoryImpl) Update{{SingularCapitalName}}(old{{SingularCapitalName}} *entity.{{SingularCapitalName}}, {{SingularLowerName}} *entity.Update{{SingularCapitalName}}, req *http.Request)  error {
+	tx, err := r.app.DB.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback(context.Background())
+		} else if err := tx.Commit(context.Background()); err != nil {
+			tx.Rollback(context.Background())
+		}
+	}()
+
+	query := `
+		UPDATE {{SingularLowerName}}s
+		SET name = $1, phone = $2, role = $3, status = $4
+		WHERE id = $5
+		RETURNING id, name, status
+	`
+	row := tx.QueryRow(context.Background(), query, {{SingularLowerName}}.Name,  {{SingularLowerName}}.Status, old{{SingularCapitalName}}.ID)
+	update{{SingularCapitalName}} := &entity.{{SingularCapitalName}}{}
+	err = row.Scan(&update{{SingularCapitalName}}.ID, &update{{SingularCapitalName}}.Name, &update{{SingularCapitalName}}.Status)
+	if err != nil {
+		tx.Rollback(context.Background())
+		return err
+	}
+
+	// Clear cache
+	if err := CacheClear(req, r.app.Cache); err != nil {
+		tx.Rollback(context.Background())
+		return err
+	}
+
+	return nil
+}
+
+func (r *{{SingularCapitalName}}RepositoryImpl) Delete{{SingularCapitalName}}({{SingularLowerName}} *entity.{{SingularCapitalName}}, req *http.Request) error {
+	tx, err := r.app.DB.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback(context.Background())
+		} else if err := tx.Commit(context.Background()); err != nil {
+			tx.Rollback(context.Background())
+		}
+	}()
+
+	query := "DELETE FROM {{SingularLowerName}}s WHERE id = $1"
+	if _, err := tx.Exec(context.Background(), query, {{SingularLowerName}}.ID); err != nil {
+		tx.Rollback(context.Background())
+		return err
+	}
+
+	// Clear cache
+	if err := CacheClear(req, r.app.Cache); err != nil {
+		tx.Rollback(context.Background())
+		return err
+	}
+
+	return nil
+}
+

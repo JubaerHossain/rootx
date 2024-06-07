@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+        contents: write
+        packages: write
+        issues: write
+        pull-requests: write
+    strategy:
+      matrix:
+        go-version: ['1.22']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Install dependencies
+      run: go mod tidy
+
+    - name: Create release directory
+      run: mkdir -p release
+
+    - name: Build Linux binary
+      run: GOOS=linux GOARCH=amd64 go build -o ./release/rootx-linux-amd64 ./main.go
+
+    - name: Build macOS binary
+      run: GOOS=darwin GOARCH=amd64 go build -o ./release/rootx-darwin-amd64 ./main.go
+
+    - name: Build Windows binary
+      run: GOOS=windows GOARCH=amd64 go build -o ./release/rootx-windows-amd64.exe ./main.go
+
+    - name: List release directory contents
+      run: ls -al release
+
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+        contents: write
+        packages: write
+        issues: write
+        pull-requests: write
+    needs: build
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Create release
+      id: create_release
+      uses: ncipollo/release-action@v1
+      with:
+        tag: ${{ github.ref }}
+        name: Release ${{ github.ref }}
+        commit: ${{ github.sha }}
+        draft: false
+        prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Linux binary
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release/rootx-linux-amd64
+        asset_name: rootx-linux-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS binary
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release/rootx-darwin-amd64
+        asset_name: rootx-darwin-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows binary
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release/rootx-windows-amd64.exe
+        asset_name: rootx-windows-amd64.exe
+        asset_content_type: application/octet-stream

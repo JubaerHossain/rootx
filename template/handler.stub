@@ -1,0 +1,157 @@
+package {{SingularLowerName}}Http
+
+import (
+	"net/http"
+
+	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/entity"
+	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/service"
+	"{{AppName}}/pkg/core/app"
+	utilQuery "{{AppName}}/pkg/query"
+	"{{AppName}}/pkg/utils"
+)
+
+// Handler handles API requests
+type Handler struct {
+	App *service.Service
+}
+
+// NewHandler creates a new instance of Handler
+func NewHandler(app *app.App) *Handler {
+	return &Handler{
+		App: service.NewService(app),
+	}
+}
+
+// @Summary Get all {{PluralLowerName}}
+// @Description Get details of all {{PluralLowerName}}
+// @Tags {{PluralLowerName}}
+// @Accept json
+// @Produce json
+// @Success 200 {object} entity.{{SingularCapitalName}}ResponsePagination
+// @Router /{{PluralLowerName}} [get]
+func (h *Handler) Get{{SingularCapitalName}}s(w http.ResponseWriter, r *http.Request) {
+	// Implement GetUsers handler
+	{{PluralLowerName}}, err := h.App.Get{{SingularCapitalName}}s(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch {{PluralLowerName}}")
+		return
+	}
+	// Write response
+	utils.JsonResponse(w, http.StatusOK, map[string]interface{}{
+		"results": {{PluralLowerName}},
+	})
+}
+
+// @Summary Create a new {{SingularCapitalName}}
+// @Description Create a new {{SingularCapitalName}}
+// @Tags {{PluralLowerName}}
+// @Accept json
+// @Produce json
+// @Param {{SingularLowerName}} body entity.{{SingularCapitalName}} true "The {{SingularCapitalName}} to be created"
+// @Router /{{PluralLowerName}} [post]
+func (h *Handler) Create{{SingularCapitalName}}(w http.ResponseWriter, r *http.Request) {
+	// Implement Create{{SingularCapitalName}} handler
+	var newUser entity.{{SingularCapitalName}}
+
+	pareErr := utilQuery.BodyParse(&newUser, w, r, true) // Parse request body and validate it
+	if pareErr != nil {
+		return
+	}
+
+	// Call the Create{{SingularCapitalName}} function to create the role
+	err := h.App.Create{{SingularCapitalName}}(&newUser, r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Write response
+	utils.WriteJSONResponse(w, http.StatusCreated, map[string]interface{}{
+		"message": "{{SingularCapitalName}} created successfully",
+	})
+}
+
+
+func (h *Handler) Get{{SingularCapitalName}}ByID(w http.ResponseWriter, r *http.Request) {
+	{{SingularLowerName}}, err := h.App.Get{{SingularCapitalName}}ByID(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Write response
+	utils.WriteJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"message": "{{SingularCapitalName}} fetched successfully",
+		"results": {{SingularLowerName}},
+	})
+
+}
+
+// @Summary Get detailed information about a {{SingularCapitalName}} by ID
+// @Description Get detailed information about a {{SingularCapitalName}} by ID
+// @Tags {{PluralLowerName}}
+// @Accept json
+// @Produce json
+// @Param id path string true "The ID of the {{SingularCapitalName}}"
+// @Router /{{PluralLowerName}}/{id}/details [get]
+func (h *Handler) Get{{SingularCapitalName}}Details(w http.ResponseWriter, r *http.Request) {
+	{{SingularLowerName}}, err := h.App.Get{{SingularCapitalName}}Details(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Write response
+	utils.WriteJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"message": "{{SingularCapitalName}} fetched successfully",
+		"results": {{SingularLowerName}},
+	})
+
+}
+
+// @Summary Update an existing {{SingularCapitalName}}
+// @Description Update an existing {{SingularCapitalName}}
+// @Tags {{PluralLowerName}}
+// @Accept json
+// @Produce json
+// @Param id path string true "The ID of the {{SingularCapitalName}}"
+// @Param {{SingularLowerName}} body entity.Update{{SingularCapitalName}} true "Updated {{SingularCapitalName}} object"
+// @Router /{{PluralLowerName}}/{id} [put]
+func (h *Handler) Update{{SingularCapitalName}}(w http.ResponseWriter, r *http.Request) {
+	// Implement Update{{SingularCapitalName}} handler
+	var update{{SingularCapitalName}} entity.Update{{SingularCapitalName}}
+	pareErr := utilQuery.BodyParse(&update{{SingularCapitalName}}, w, r, true) // Parse request body and validate it
+	if pareErr != nil {
+		return
+	}
+
+	// Call the Create{{SingularCapitalName}} function to create the {{SingularLowerName}}
+	err := h.App.Update{{SingularCapitalName}}(r, &update{{SingularCapitalName}})
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Write response
+	utils.WriteJSONResponse(w, http.StatusCreated, map[string]interface{}{
+		"message": "{{SingularCapitalName}} updated successfully",
+	})
+}
+
+// @Summary Delete a {{SingularCapitalName}}
+// @Description Delete a {{SingularCapitalName}}
+// @Tags {{PluralLowerName}}
+// @Accept json
+// @Produce json
+// @Param id path string true "The ID of the {{SingularCapitalName}}"
+// @Router /{{PluralLowerName}}/{id} [delete]
+func (h *Handler) Delete{{SingularCapitalName}}(w http.ResponseWriter, r *http.Request) {
+	// Implement Delete{{SingularCapitalName}} handler
+	err := h.App.Delete{{SingularCapitalName}}(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Write response
+	utils.WriteJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"message": "{{SingularCapitalName}} deleted successfully",
+	})
+}

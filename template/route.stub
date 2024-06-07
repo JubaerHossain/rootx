@@ -1,0 +1,25 @@
+package {{SingularLowerName}}Http
+
+import (
+	"net/http"
+	"{{AppName}}/pkg/core/app"
+    "{{AppName}}/pkg/core/middleware"
+)
+
+// {{SingularCapitalName}}Router registers routes for API endpoints
+func {{SingularCapitalName}}Router(application *app.App) http.Handler {
+	router := http.NewServeMux()
+
+	
+	handler := NewHandler(application)
+	// Register {{SingularLowerName}} routes
+
+	router.Handle("GET /{{PluralLowerName}}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Get{{PluralCapitalName}})))
+	router.Handle("POST /{{PluralLowerName}}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Create{{SingularCapitalName}})))
+	router.Handle("GET /{{PluralLowerName}}/{id}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Get{{SingularCapitalName}}Details)))
+	router.Handle("PUT /{{PluralLowerName}}/{id}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Update{{SingularCapitalName}})))
+	router.Handle("DELETE /{{PluralLowerName}}/{id}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Delete{{SingularCapitalName}})))
+   
+
+	return router
+}

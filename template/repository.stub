@@ -1,0 +1,18 @@
+package repository
+
+import (
+	"net/http"
+
+	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/entity"
+)
+
+
+// {{SingularCapitalName}}Repository defines methods for {{SingularLowerName}} data access
+type {{SingularCapitalName}}Repository interface {
+	Get{{PluralCapitalName}}(r *http.Request) (*entity.{{SingularCapitalName}}ResponsePagination, error)
+	Get{{SingularCapitalName}}ByID({{SingularLowerName}}ID uint) (*entity.{{SingularCapitalName}}, error)
+	Get{{SingularCapitalName}}({{SingularLowerName}}ID uint) (*entity.Response{{SingularCapitalName}}, error)
+	Create{{SingularCapitalName}}({{SingularLowerName}} *entity.{{SingularCapitalName}}, r *http.Request)  error
+	Update{{SingularCapitalName}}(old{{SingularCapitalName}} *entity.{{SingularCapitalName}}, {{SingularLowerName}} *entity.Update{{SingularCapitalName}}, r *http.Request) error
+	Delete{{SingularCapitalName}}({{SingularLowerName}} *entity.{{SingularCapitalName}}, r *http.Request) error
+}

@@ -1,0 +1,101 @@
+package service
+
+import (
+	"fmt"
+	"net/http"
+	"strconv"
+
+	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/entity"
+	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/infrastructure/persistence"
+	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/repository"
+	"{{AppName}}/pkg/core/app"
+)
+
+type Service struct {
+	app  *app.App
+	repo repository.{{SingularCapitalName}}Repository
+}
+
+func NewService(app *app.App) *Service {
+	repo := persistence.New{{SingularCapitalName}}Repository(app)
+	return &Service{
+		app:  app,
+		repo: repo,
+	}
+}
+
+func (s *Service) Get{{SingularCapitalName}}s(r *http.Request) (*entity.{{SingularCapitalName}}ResponsePagination, error) {
+	// Call repository to get all {{PluralLowerName}}
+	{{PluralLowerName}}, {{SingularLowerName}}Err := s.repo.Get{{SingularCapitalName}}s(r)
+	if {{SingularLowerName}}Err != nil {
+		return nil, {{SingularLowerName}}Err
+	}
+	return {{PluralLowerName}}, nil
+}
+
+
+
+// Create{{SingularCapitalName}} creates a new {{SingularLowerName}}
+func (s *Service) Create{{SingularCapitalName}}({{SingularLowerName}} *entity.{{SingularCapitalName}}, r *http.Request)  error {
+	// Add any validation or business logic here before creating the {{SingularLowerName}}
+    if err := s.repo.Create{{SingularCapitalName}}({{SingularLowerName}}, r); err != nil {
+        return err
+    }
+	return nil
+}
+
+func (s *Service) Get{{SingularCapitalName}}ByID(r *http.Request) (*entity.{{SingularCapitalName}}, error) {
+	id, err := strconv.ParseUint(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid {{SingularLowerName}} ID")
+	}
+	{{SingularLowerName}}, {{SingularLowerName}}Err := s.repo.Get{{SingularCapitalName}}ByID(uint(id))
+	if {{SingularLowerName}}Err != nil {
+		return nil, {{SingularLowerName}}Err
+	}
+	return {{SingularLowerName}}, nil
+}
+
+// Get{{SingularCapitalName}}Details retrieves a {{SingularLowerName}} by ID
+func (s *Service) Get{{SingularCapitalName}}Details(r *http.Request) (*entity.Response{{SingularCapitalName}}, error) {
+	id, err := strconv.ParseUint(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid {{SingularLowerName}} ID")
+	}
+	{{SingularLowerName}}, {{SingularLowerName}}Err := s.repo.Get{{SingularCapitalName}}(uint(id))
+	if {{SingularLowerName}}Err != nil {
+		return nil, {{SingularLowerName}}Err
+	}
+	return {{SingularLowerName}}, nil
+}
+
+// Update{{SingularCapitalName}} updates an existing {{SingularLowerName}}
+func (s *Service) Update{{SingularCapitalName}}(r *http.Request, {{SingularLowerName}} *entity.Update{{SingularCapitalName}})  error {
+	// Call repository to update {{SingularLowerName}}
+	old{{SingularCapitalName}}, err := s.Get{{SingularCapitalName}}ByID(r)
+	if err != nil {
+		return err
+	}
+
+	err2 := s.repo.Update{{SingularCapitalName}}(old{{SingularCapitalName}}, {{SingularLowerName}}, r)
+	if err2 != nil {
+		return err2
+	}
+	return  nil
+}
+
+// Delete{{SingularCapitalName}} deletes a {{SingularLowerName}} by ID
+func (s *Service) Delete{{SingularCapitalName}}(r *http.Request) error {
+	// Call repository to delete {{SingularLowerName}}
+	{{SingularLowerName}}, err := s.Get{{SingularCapitalName}}ByID(r)
+	if err != nil {
+		return err
+	}
+
+	err2 := s.repo.Delete{{SingularCapitalName}}({{SingularLowerName}}, r)
+	if err2 != nil {
+		return err2
+	}
+
+	return nil
+}
