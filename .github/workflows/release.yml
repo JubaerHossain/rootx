@@ -14,11 +14,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-        contents: write
-        packages: write
-        issues: write
-        pull-requests: write
     strategy:
       matrix:
         go-version: ['1.22']
@@ -52,11 +47,6 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    permissions:
-        contents: write
-        packages: write
-        issues: write
-        pull-requests: write
     needs: build
 
     steps:
