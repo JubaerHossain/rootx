@@ -497,6 +497,7 @@ func createMainFile(templatePath, targetPath string) error {
 	return nil
 }
 
+// Function to create or load .env file
 func createEnvFile() error {
 	envFile := ".env"
 	if _, err := os.Stat(envFile); os.IsNotExist(err) {
@@ -508,6 +509,16 @@ func createEnvFile() error {
 		if err := os.WriteFile(envFile, content, 0644); err != nil {
 			return fmt.Errorf("failed to create .env file: %w", err)
 		}
+	}
+	return nil
+}
+
+// Function to generate main.go file
+func generateMainFile() error {
+	templatePath := path.Join(TemplateDir, "main.go")
+	targetPath := path.Join(AppRoot, "cmd", "server", "main.go")
+	if err := createMainFile(templatePath, targetPath); err != nil {
+		return fmt.Errorf("error creating main.go file: %w", err)
 	}
 	return nil
 }
@@ -603,26 +614,20 @@ func RunApp(cmd *cobra.Command, args []string) error {
 		bar.Add(1)
 		time.Sleep(100 * time.Millisecond) // Simulate some work being done
 	}
-
-	envPath := "template/env.stub"
-	envTargetPath := "./.env"
-	if err := createMainFile(envPath, envTargetPath); err != nil {
-		return fmt.Errorf("error creating main.go file: %w", err)
+	// Load environment variables from existing .env file or create a new one
+	if err := createEnvFile(); err != nil {
+		return fmt.Errorf("error creating .env file: %w", err)
 	}
 
-	// if err := createEnvFile(); err != nil {
-	// 	return fmt.Errorf("error creating .env file: %w", err)
-	// }
 
 	if err := DatabaseConfig(); err != nil {
 		return fmt.Errorf("error creating database config: %w", err)
 	}
 
-	
-	templatePath := "template/main.stub"
-	targetPath := "./cmd/server/main.go"
-	if err := createMainFile(templatePath, targetPath); err != nil {
-		return fmt.Errorf("error creating main.go file: %w", err)
+
+	// Generate main.go file
+	if err := generateMainFile(); err != nil {
+		return fmt.Errorf("error generating main.go file: %w", err)
 	}
 
 	if err := runCommand("go", "mod", "tidy"); err != nil {
