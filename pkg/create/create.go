@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -324,7 +325,23 @@ func MigrationWithSeederCreate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func connectDB(dbUser string, dbPassword string, dbHost string, dbPortStr string, dbName string) (*pgxpool.Pool, error) {
+func loadEnv() error {
+    err := godotenv.Load(".env")
+    if err != nil {
+        return fmt.Errorf("failed to load .env file: %w", err)
+    }
+	return nil
+}
+
+func connectDB() (*pgxpool.Pool, error) {
+	if err := loadEnv(); err != nil {
+		return nil, fmt.Errorf("failed to load .env file: %w", err)
+	}
+	dbHost := os.Getenv("DB_HOST")
+    dbPortStr := os.Getenv("DB_PORT")
+    dbUser := os.Getenv("DB_USER")
+    dbPassword := os.Getenv("DB_PASSWORD")
+    dbName := os.Getenv("DB_NAME")
 
 	dbPort, err := strconv.Atoi(dbPortStr)
 	if err != nil {
@@ -361,14 +378,8 @@ func getUserInput(prompt string) string {
 }
 
 func ApplyMigrations(cmd *cobra.Command, args []string) error {
-	
-	dbUser := getUserInput("Enter database user: ")
-	dbPassword := getUserInput("Enter database password: ")
-	dbHost := getUserInput("Enter database host: ")
-	dbPortStr := getUserInput("Enter database port: ")
-	dbName := getUserInput("Enter database name: ")
 
-	pool, err := connectDB(dbUser, dbPassword, dbHost, dbPortStr, dbName)
+	pool, err := connectDB()
 	if err != nil {
 		return fmt.Errorf("failed to connect to database")
 	}
@@ -401,13 +412,7 @@ func RunSeeders(cmd *cobra.Command, args []string) error {
 		time.Sleep(100 * time.Millisecond) // Simulate some work being done
 	}
 
-	dbUser := getUserInput("Enter database user: ")
-	dbPassword := getUserInput("Enter database password: ")
-	dbHost := getUserInput("Enter database host: ")
-	dbPortStr := getUserInput("Enter database port: ")
-	dbName := getUserInput("Enter database name: ")
-
-	pool, err := connectDB(dbUser, dbPassword, dbHost, dbPortStr, dbName)
+	pool, err := connectDB()
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -505,6 +510,89 @@ func createEnvFile() error {
 	return nil
 }
 
+func loadEnvFile(filename string) (map[string]string, error) {
+    envMap := make(map[string]string)
+
+    file, err := os.Open(filename)
+    if err != nil {
+        return nil, err
+    }
+    defer file.Close()
+
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        line := scanner.Text()
+        if strings.HasPrefix(line, "#") || len(strings.TrimSpace(line)) == 0 {
+            continue // skip comments and empty lines
+        }
+        parts := strings.SplitN(line, "=", 2)
+        if len(parts) != 2 {
+            continue
+        }
+        key := strings.TrimSpace(parts[0])
+        value := strings.TrimSpace(parts[1])
+        envMap[key] = value
+    }
+
+    if err := scanner.Err(); err != nil {
+        return nil, err
+    }
+
+    return envMap, nil
+}
+
+// Function to write the map back to the .env file
+func writeEnvFile(filename string, envMap map[string]string) error {
+    file, err := os.Create(filename)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+
+    writer := bufio.NewWriter(file)
+    for key, value := range envMap {
+        line := fmt.Sprintf("%s=%s\n", key, value)
+        if _, err := writer.WriteString(line); err != nil {
+            return err
+        }
+    }
+    return writer.Flush()
+}
+
+func DatabaseConfig() error{
+
+	envFile := ".env"
+
+    // Load the existing .env file into a map
+    envMap, err := loadEnvFile(envFile)
+    if err != nil {
+        return fmt.Errorf("failed to load .env file: %w", err)
+    }
+
+
+	dbUser := getUserInput("Enter database user: ")
+	dbPassword := getUserInput("Enter database password: ")
+	dbHost := getUserInput("Enter database host: ")
+	dbPortStr := getUserInput("Enter database port: ")
+	dbName := getUserInput("Enter database name: ")
+
+	envMap["DB_HOST"] = dbHost
+    envMap["DB_PORT"] = dbPortStr
+    envMap["DB_NAME"] = dbName
+    envMap["DB_USER"] = dbUser
+    envMap["DB_PASSWORD"] = dbPassword
+
+	// Write the updated map back to the .env file
+    if err := writeEnvFile(envFile, envMap); err != nil {
+        fmt.Printf("Error writing to .env file: %v\n", err)
+    } else {
+        fmt.Println("Successfully updated .env file")
+    }
+
+	return nil
+
+}
+
 func RunApp(cmd *cobra.Command, args []string) error {
 	bar := CreateProgressBar("App Running: ")
 	// Perform your tasks here
@@ -518,6 +606,11 @@ func RunApp(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error creating .env file: %w", err)
 	}
 
+	if err := DatabaseConfig(); err != nil {
+		return fmt.Errorf("error creating database config: %w", err)
+	}
+
+	
 	templatePath := "template/main.stub"
 	targetPath := "./cmd/server/main.go"
 	if err := createMainFile(templatePath, targetPath); err != nil {
@@ -526,6 +619,10 @@ func RunApp(cmd *cobra.Command, args []string) error {
 
 	if err := runCommand("go", "mod", "tidy"); err != nil {
 		return fmt.Errorf("failed to run go mod tidy: %w", err)
+	}
+	
+	if err := runCommand("go", "mod", "vendor"); err != nil {
+		return fmt.Errorf("failed to run go mod vendor: %w", err)
 	}
 
 	// Run the server
