@@ -554,7 +554,7 @@ func createEnvFile() error {
 
 // Function to generate main.go file
 func generateMainFile() error {
-	templatePath := path.Join(TemplateDir, "main.go")
+	templatePath := path.Join("template", "main.go")
 	targetPath := path.Join(AppRoot, "cmd", "server", "main.go")
 	if err := createMainFile(templatePath, targetPath); err != nil {
 		return fmt.Errorf("error creating main.go file: %w", err)
