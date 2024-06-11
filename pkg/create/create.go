@@ -550,8 +550,14 @@ func createEnvFile() error {
 }
 
 func makeMainFile() error {
-	targetPath := path.Join(AppRoot, "cmd", "server", "main.go")
+	targetDir := path.Join(AppRoot, "cmd", "server")
+	targetPath := path.Join(targetDir, "main.go")
+
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+		// Ensure that the target directory exists
+		if err := os.MkdirAll(targetDir, 0755); err != nil {
+			return fmt.Errorf("failed to create directory %s: %w", targetDir, err)
+		}
 		mainContent := `package main
 
 	import (
@@ -788,8 +794,6 @@ func DatabaseConfig() error {
 	// Write the updated map back to the .env file
 	if err := writeEnvFile(envFile, envMap); err != nil {
 		fmt.Printf("Error writing to .env file: %v\n", err)
-	} else {
-		fmt.Println("Successfully updated .env file")
 	}
 
 	return nil
@@ -812,7 +816,7 @@ func RunApp(cmd *cobra.Command, args []string) error {
 	if err := DatabaseConfig(); err != nil {
 		return fmt.Errorf("error creating database config: %w", err)
 	}
-	
+
 	if err := makeMainFile(); err != nil {
 		return fmt.Errorf("error creating main.go file: %w", err)
 	}
