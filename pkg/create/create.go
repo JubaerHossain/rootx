@@ -88,7 +88,6 @@ func Run(cmd *cobra.Command, args []string) error {
 		return errors.New("not enough arguments")
 	}
 	AppName = moduleName
-	fmt.Println(AppName)
 	name := args[1]
 	name = Lower(Plural(name))
 	fs := afero.NewBasePathFs(afero.NewOsFs(), AppRoot+"/")
@@ -550,163 +549,173 @@ func createEnvFile() error {
 }
 
 func makeMainFile() error {
-	targetDir := filepath.Join(AppRoot, "cmd", "server")
+
+	targetDir := filepath.Join("./", "cmd", "server")
 	targetPath := filepath.Join(targetDir, "main.go")
 
+	// Ensure that the target directory exists
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-		// Ensure that the target directory exists
-		if err := os.MkdirAll(targetDir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", targetDir, err)
+		os.MkdirAll(targetPath, 0755)
+	}
+
+	// Ensure that the target directory exists
+	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(targetPath, 0755); err != nil {
+			return fmt.Errorf("failed to create directory %s: %w", targetPath, err)
 		}
+	}
+
+	// Check if main.go already exists
+	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
 		mainContent := `package main
 
-	import (
-		"context"
-		"errors"
-		"fmt"
-		"log"
-		"net/http"
-		"os"
-		"os/exec"
-		"os/signal"
-		"runtime"
-		"syscall"
-		"time"
-	
-		"github.com/JubaerHossain/rootx/pkg/core/app"
-		"github.com/JubaerHossain/rootx/pkg/core/health"
-		"github.com/JubaerHossain/rootx/pkg/core/middleware"
-		"github.com/JubaerHossain/rootx/pkg/core/monitor"
-		"github.com/JubaerHossain/rootx/pkg/utils"
-	)
-	
-	// @title           Golang Starter API
-	// @version         1.0
-	// @description     This is a starter API for Golang projects
-	// @host            localhost:3021
-	// @BasePath        /api
-	
-	func main() {
-		// Initialize the application
-		application, err := app.StartApp()
-		if err != nil {
-			log.Fatalf("❌ Failed to start application: %v", err)
-		}
-	
-		// Initialize HTTP server
-		httpServer := initHTTPServer(application)
-	
-		go func() {
-			if err := startHTTPServer(application, httpServer); err != nil {
-				log.Printf("❌ %v", err)
-				log.Println("🔄 Trying to start the server on another port...")
-				if err := startHTTPServerOnAvailablePort(application, httpServer); err != nil {
-					log.Fatalf("❌ Failed to start server on another port: %v", err)
-				}
-			}
-		}()
-	
-		baseURL := fmt.Sprintf("http://localhost:%d", application.Config.AppPort)
-		log.Printf("🌐 API base URL: %s", baseURL)
-	
-		// Open Swagger URL in browser if in development environment
-		if application.Config.AppEnv == "development" {
-			openBrowser(baseURL)
-		}
-	
-		// Graceful shutdown
-		gracefulShutdown(httpServer, 5*time.Second)
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"runtime"
+	"syscall"
+	"time"
+
+	"github.com/JubaerHossain/rootx/pkg/core/app"
+	"github.com/JubaerHossain/rootx/pkg/core/health"
+	"github.com/JubaerHossain/rootx/pkg/core/middleware"
+	"github.com/JubaerHossain/rootx/pkg/core/monitor"
+	"github.com/JubaerHossain/rootx/pkg/utils"
+)
+
+// @title           Golang Starter API
+// @version         1.0
+// @description     This is a starter API for Golang projects
+// @host            localhost:3021
+// @BasePath        /api
+
+func main() {
+	// Initialize the application
+	application, err := app.StartApp()
+	if err != nil {
+		log.Fatalf("❌ Failed to start application: %v", err)
 	}
-	
-	func initHTTPServer(application *app.App) *http.Server {
-		return &http.Server{
-			Addr:    fmt.Sprintf(":%d", application.Config.AppPort),
-			Handler: setupRoutes(application),
-		}
-	}
-	
-	func startHTTPServer(application *app.App, server *http.Server) error {
-		err := server.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
-			return fmt.Errorf("Could not start server: %v", err)
-		}
-		return nil
-	}
-	
-	func startHTTPServerOnAvailablePort(application *app.App, server *http.Server) error {
-		for i := application.Config.AppPort + 1; i <= application.Config.AppPort+10; i++ {
-			newAddr := fmt.Sprintf(":%d", i)
-			server.Addr = newAddr
-			log.Printf("Trying to start server on port %d...", i)
-			err := startHTTPServer(application, server)
-			if err == nil {
-				log.Printf("✅ Server started on port %d", i)
-				return nil
+
+	// Initialize HTTP server
+	httpServer := initHTTPServer(application)
+
+	go func() {
+		if err := startHTTPServer(application, httpServer); err != nil {
+			log.Printf("❌ %v", err)
+			log.Println("🔄 Trying to start the server on another port...")
+			if err := startHTTPServerOnAvailablePort(application, httpServer); err != nil {
+				log.Fatalf("❌ Failed to start server on another port: %v", err)
 			}
 		}
-		return errors.New("Could not find available port to start server")
+	}()
+
+	baseURL := fmt.Sprintf("http://localhost:%d", application.Config.AppPort)
+	log.Printf("🌐 API base URL: %s", baseURL)
+
+	// Open Swagger URL in browser if in development environment
+	if application.Config.AppEnv == "development" {
+		openBrowser(baseURL)
 	}
-	
-	func setupRoutes(application *app.App) http.Handler {
-		// Create a new ServeMux
-		mux := http.NewServeMux()
-	
-		// Register health check endpoint
-		mux.Handle("/health", middleware.LoggingMiddleware(http.HandlerFunc(health.HealthCheckHandler())))
-	
-		// Register monitoring endpoint
-		mux.Handle("/metrics", monitor.MetricsHandler())
-	
-		// Add security headers
-		mux.Handle("/", middleware.LimiterMiddleware(middleware.LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			utils.WriteJSONResponse(w, http.StatusOK, map[string]interface{}{"message": "Welcome to the API"})
-		}))))
-	
-		return middleware.PrometheusMiddleware(mux, monitor.RequestsTotal(), monitor.RequestDuration())
+
+	// Graceful shutdown
+	gracefulShutdown(httpServer, 5*time.Second)
+}
+
+func initHTTPServer(application *app.App) *http.Server {
+	return &http.Server{
+		Addr:    fmt.Sprintf(":%d", application.Config.AppPort),
+		Handler: setupRoutes(application),
 	}
-	
-	func openBrowser(url string) {
-		var cmd string
-		var args []string
-	
-		switch runtime.GOOS {
-		case "linux":
-			cmd = "xdg-open"
-		case "windows":
-			cmd = "rundll32"
-			args = append(args, "url.dll,FileProtocolHandler")
-		case "darwin":
-			cmd = "open"
-		default:
-			return
+}
+
+func startHTTPServer(application *app.App, server *http.Server) error {
+	err := server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("Could not start server: %v", err)
+	}
+	return nil
+}
+
+func startHTTPServerOnAvailablePort(application *app.App, server *http.Server) error {
+	for i := application.Config.AppPort + 1; i <= application.Config.AppPort+10; i++ {
+		newAddr := fmt.Sprintf(":%d", i)
+		server.Addr = newAddr
+		log.Printf("Trying to start server on port %d...", i)
+		err := startHTTPServer(application, server)
+		if err == nil {
+			log.Printf("✅ Server started on port %d", i)
+			return nil
 		}
-		args = append(args, url)
-		if err := exec.Command(cmd, args...).Start(); err != nil {
-			log.Printf("Failed to open browser: %v", err)
-		}
 	}
-	
-	func gracefulShutdown(server *http.Server, timeout time.Duration) {
-		quit := make(chan os.Signal, 1)
-		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-		<-quit
-		log.Printf("⚙️ Shutting down server...")
-	
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-	
-		if err := server.Shutdown(ctx); err != nil {
-			log.Fatalf("❌ Could not gracefully shutdown the server: %v", err)
-		}
-	
-		log.Printf("✅ Server gracefully stopped")
+	return errors.New("Could not find available port to start server")
+}
+
+func setupRoutes(application *app.App) http.Handler {
+	// Create a new ServeMux
+	mux := http.NewServeMux()
+
+	// Register health check endpoint
+	mux.Handle("/health", middleware.LoggingMiddleware(http.HandlerFunc(health.HealthCheckHandler())))
+
+	// Register monitoring endpoint
+	mux.Handle("/metrics", monitor.MetricsHandler())
+
+	// Add security headers
+	mux.Handle("/", middleware.LimiterMiddleware(middleware.LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		utils.WriteJSONResponse(w, http.StatusOK, map[string]interface{}{"message": "Welcome to the API"})
+	}))))
+
+	return middleware.PrometheusMiddleware(mux, monitor.RequestsTotal(), monitor.RequestDuration())
+}
+
+func openBrowser(url string) {
+	var cmd string
+	var args []string
+
+	switch runtime.GOOS {
+	case "linux":
+		cmd = "xdg-open"
+	case "windows":
+		cmd = "rundll32"
+		args = append(args, "url.dll,FileProtocolHandler")
+	case "darwin":
+		cmd = "open"
+	default:
+		return
 	}
-	`
-		if err := os.WriteFile(path.Join("cmd", "server", "main.go"), []byte(mainContent), 0644); err != nil {
+	args = append(args, url)
+	if err := exec.Command(cmd, args...).Start(); err != nil {
+		log.Printf("Failed to open browser: %v", err)
+	}
+}
+
+func gracefulShutdown(server *http.Server, timeout time.Duration) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Printf("⚙️ Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("❌ Could not gracefully shutdown the server: %v", err)
+	}
+
+	log.Printf("✅ Server gracefully stopped")
+}
+`
+		if err := os.WriteFile(targetPath, []byte(mainContent), 0644); err != nil {
 			return fmt.Errorf("failed to create main.go file: %w", err)
 		}
-
 	}
+
 	return nil
 }
 
