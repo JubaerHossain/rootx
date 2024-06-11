@@ -469,7 +469,6 @@ func createDocsFile(name string) error {
 	return nil
 }
 
-
 func runCommand(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = os.Stdout
@@ -547,13 +546,13 @@ func createEnvFile() error {
 		fmt.Println("Error writing to .env file:", err)
 		return err
 	}
-
-	fmt.Println(".env file created successfully")
 	return nil
 }
 
 func makeMainFile() error {
-	mainContent := `package main
+	targetPath := path.Join(AppRoot, "cmd", "server", "main.go")
+	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+		mainContent := `package main
 
 	import (
 		"context"
@@ -697,14 +696,13 @@ func makeMainFile() error {
 		log.Printf("✅ Server gracefully stopped")
 	}
 	`
-	if _, err := os.Stat("main.go"); os.IsNotExist(err) {
-		if err := os.WriteFile("main.go", []byte(mainContent), 0644); err != nil {
+		if err := os.WriteFile(path.Join("cmd", "server", "main.go"), []byte(mainContent), 0644); err != nil {
 			return fmt.Errorf("failed to create main.go file: %w", err)
 		}
+
 	}
 	return nil
 }
-
 
 // Function to generate main.go file
 func generateMainFile() error {
@@ -814,10 +812,8 @@ func RunApp(cmd *cobra.Command, args []string) error {
 	if err := DatabaseConfig(); err != nil {
 		return fmt.Errorf("error creating database config: %w", err)
 	}
-
-	templatePath := "template/main.stub"
-	targetPath := "./cmd/server/main.go"
-	if err := createMainFile(templatePath, targetPath); err != nil {
+	
+	if err := makeMainFile(); err != nil {
 		return fmt.Errorf("error creating main.go file: %w", err)
 	}
 
