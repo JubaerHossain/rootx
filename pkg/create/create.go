@@ -14,12 +14,13 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"github.com/schollz/progressbar/v3"
+
 	"github.com/gertd/go-pluralize"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
+	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/joho/godotenv"
 )
 
 const (
@@ -67,7 +68,6 @@ func CreateProgressBar(description string) *progressbar.ProgressBar {
 	return bar
 }
 
-
 func Run(cmd *cobra.Command, args []string) error {
 
 	bar := CreateProgressBar("Creating module: ")
@@ -81,7 +81,7 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	moduleName, err := getModuleName()
 	if err != nil {
-		return  errors.New("module name not found in go.mod")
+		return errors.New("module name not found in go.mod")
 	}
 
 	if len(args) < 2 {
@@ -328,10 +328,10 @@ func MigrationWithSeederCreate(cmd *cobra.Command, args []string) error {
 }
 
 func loadEnv() error {
-    err := godotenv.Load(".env")
-    if err != nil {
-        return fmt.Errorf("failed to load .env file: %w", err)
-    }
+	err := godotenv.Load(".env")
+	if err != nil {
+		return fmt.Errorf("failed to load .env file: %w", err)
+	}
 	return nil
 }
 
@@ -340,10 +340,10 @@ func connectDB() (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("failed to load .env file: %w", err)
 	}
 	dbHost := os.Getenv("DB_HOST")
-    dbPortStr := os.Getenv("DB_PORT")
-    dbUser := os.Getenv("DB_USER")
-    dbPassword := os.Getenv("DB_PASSWORD")
-    dbName := os.Getenv("DB_NAME")
+	dbPortStr := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
 
 	dbPort, err := strconv.Atoi(dbPortStr)
 	if err != nil {
@@ -359,7 +359,7 @@ func connectDB() (*pgxpool.Pool, error) {
 
 	config.MaxConnIdleTime = 10 * time.Minute
 	config.MaxConnLifetime = 60 * time.Minute // Set to 1 hour
-	config.MaxConns = 50000                    // Adjust based on your environment
+	config.MaxConns = 50000                   // Adjust based on your environment
 	config.MinConns = 100
 
 	return pgxpool.NewWithConfig(context.Background(), config)
@@ -399,8 +399,6 @@ func ApplyMigrations(cmd *cobra.Command, args []string) error {
 		bar.Add(1)
 		time.Sleep(100 * time.Millisecond) // Simulate some work being done
 	}
-
-
 
 	return nil
 }
@@ -471,6 +469,7 @@ func createDocsFile(name string) error {
 	return nil
 }
 
+
 func runCommand(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = os.Stdout
@@ -498,21 +497,60 @@ func createMainFile(templatePath, targetPath string) error {
 }
 
 // Function to create or load .env file
-func createEnvFile(fs afero.Fs, name string) error {
-	envFile := ".env"
-	if _, err := os.Stat(envFile); os.IsNotExist(err) {
-		templateFile := filepath.Join(TemplateDir, "env.stub")
-		// content, err := fileContents(templateFile)
-		// if err != nil {
-		// 	return fmt.Errorf("failed to read template file: %w", err)
-		// }
-		if err := createFile(fs, name, templateFile, envFile); err != nil {
-			return fmt.Errorf("failed to create .env file: %w", err)
-		}
+func createEnvFile() error {
+	envContent := `# Environment settings
+		APP_ENV=development
+		VERSION=1.0.0
+		APP_PORT=9008
+
+		# Database settings
+		DB_TYPE="postgres"
+		DB_HOST="localhost"
+		DB_PORT=5433
+		DB_NAME="starter_api"
+		DB_USER="postgres"
+		DB_PASSWORD="password"
+		DB_SSLMODE="enable"
+
+		# Migration and seeding settings
+		MIGRATE=false
+		SEED=false
+
+		# Redis settings
+		REDIS_URI="localhost:6379"
+		REDIS_PASSWORD=
+		IS_REDIS=false
+		REDIS_DB=0
+		REDIS_EXP="86400"
+
+		# Rate limiting settings
+		RATE_LIMIT_ENABLED=true
+		RATE_LIMIT="500"
+		RATE_LIMIT_DURATION="1m"
+
+		# JWT settings
+		JWT_SECRET_KEY=secret
+		JWT_EXPIRATION="1h"
+		`
+
+	// Open or create the .env file
+	envFile, err := os.Create(".env")
+	if err != nil {
+		fmt.Println("Error creating .env file:", err)
+		return err
 	}
+	defer envFile.Close()
+
+	// Write the content to the .env file
+	_, err = envFile.WriteString(envContent)
+	if err != nil {
+		fmt.Println("Error writing to .env file:", err)
+		return err
+	}
+
+	fmt.Println(".env file created successfully")
 	return nil
 }
-
 
 // Function to generate main.go file
 func generateMainFile() error {
@@ -525,64 +563,63 @@ func generateMainFile() error {
 }
 
 func loadEnvFile(filename string) (map[string]string, error) {
-    envMap := make(map[string]string)
+	envMap := make(map[string]string)
 
-    file, err := os.Open(filename)
-    if err != nil {
-        return nil, err
-    }
-    defer file.Close()
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-        line := scanner.Text()
-        if strings.HasPrefix(line, "#") || len(strings.TrimSpace(line)) == 0 {
-            continue // skip comments and empty lines
-        }
-        parts := strings.SplitN(line, "=", 2)
-        if len(parts) != 2 {
-            continue
-        }
-        key := strings.TrimSpace(parts[0])
-        value := strings.TrimSpace(parts[1])
-        envMap[key] = value
-    }
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") || len(strings.TrimSpace(line)) == 0 {
+			continue // skip comments and empty lines
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		envMap[key] = value
+	}
 
-    if err := scanner.Err(); err != nil {
-        return nil, err
-    }
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
 
-    return envMap, nil
+	return envMap, nil
 }
 
 // Function to write the map back to the .env file
 func writeEnvFile(filename string, envMap map[string]string) error {
-    file, err := os.Create(filename)
-    if err != nil {
-        return err
-    }
-    defer file.Close()
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
-    writer := bufio.NewWriter(file)
-    for key, value := range envMap {
-        line := fmt.Sprintf("%s=%s\n", key, value)
-        if _, err := writer.WriteString(line); err != nil {
-            return err
-        }
-    }
-    return writer.Flush()
+	writer := bufio.NewWriter(file)
+	for key, value := range envMap {
+		line := fmt.Sprintf("%s=%s\n", key, value)
+		if _, err := writer.WriteString(line); err != nil {
+			return err
+		}
+	}
+	return writer.Flush()
 }
 
-func DatabaseConfig() error{
+func DatabaseConfig() error {
 
 	envFile := ".env"
 
-    // Load the existing .env file into a map
-    envMap, err := loadEnvFile(envFile)
-    if err != nil {
-        return fmt.Errorf("failed to load .env file: %w", err)
-    }
-
+	// Load the existing .env file into a map
+	envMap, err := loadEnvFile(envFile)
+	if err != nil {
+		return fmt.Errorf("failed to load .env file: %w", err)
+	}
 
 	dbUser := getUserInput("Enter database user: ")
 	dbPassword := getUserInput("Enter database password: ")
@@ -591,17 +628,17 @@ func DatabaseConfig() error{
 	dbName := getUserInput("Enter database name: ")
 
 	envMap["DB_HOST"] = dbHost
-    envMap["DB_PORT"] = dbPortStr
-    envMap["DB_NAME"] = dbName
-    envMap["DB_USER"] = dbUser
-    envMap["DB_PASSWORD"] = dbPassword
+	envMap["DB_PORT"] = dbPortStr
+	envMap["DB_NAME"] = dbName
+	envMap["DB_USER"] = dbUser
+	envMap["DB_PASSWORD"] = dbPassword
 
 	// Write the updated map back to the .env file
-    if err := writeEnvFile(envFile, envMap); err != nil {
-        fmt.Printf("Error writing to .env file: %v\n", err)
-    } else {
-        fmt.Println("Successfully updated .env file")
-    }
+	if err := writeEnvFile(envFile, envMap); err != nil {
+		fmt.Printf("Error writing to .env file: %v\n", err)
+	} else {
+		fmt.Println("Successfully updated .env file")
+	}
 
 	return nil
 
@@ -616,16 +653,13 @@ func RunApp(cmd *cobra.Command, args []string) error {
 		time.Sleep(100 * time.Millisecond) // Simulate some work being done
 	}
 	// Load environment variables from existing .env file or create a new one
-	fs := afero.NewOsFs()
-	if err := createEnvFile(fs, "."); err != nil {
+	if err := createEnvFile(); err != nil {
 		return fmt.Errorf("error creating .env file: %w", err)
 	}
-
 
 	if err := DatabaseConfig(); err != nil {
 		return fmt.Errorf("error creating database config: %w", err)
 	}
-
 
 	// Generate main.go file
 	if err := generateMainFile(); err != nil {
@@ -635,7 +669,7 @@ func RunApp(cmd *cobra.Command, args []string) error {
 	if err := runCommand("go", "mod", "tidy"); err != nil {
 		return fmt.Errorf("failed to run go mod tidy: %w", err)
 	}
-	
+
 	if err := runCommand("go", "mod", "vendor"); err != nil {
 		return fmt.Errorf("failed to run go mod vendor: %w", err)
 	}
@@ -658,7 +692,7 @@ func RunApiDocs(cmd *cobra.Command, args []string) error {
 	if err := createDocsFile("docs"); err != nil {
 		return fmt.Errorf("error creating docs file: %w", err)
 	}
-	
+
 	if err := runCommand("go", "get", "github.com/swaggo/swag/cmd/swag@v1.16.3"); err != nil {
 		return fmt.Errorf("failed to install swag: %w", err)
 	}
