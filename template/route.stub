@@ -2,8 +2,8 @@ package {{SingularLowerName}}Http
 
 import (
 	"net/http"
-	"{{AppName}}/pkg/core/app"
-    "{{AppName}}/pkg/core/middleware"
+	"github.com/JubaerHossain/rootx/pkg/core/app"
+    "github.com/JubaerHossain/rootx/pkg/core/middleware"
 )
 
 // {{SingularCapitalName}}Router registers routes for API endpoints

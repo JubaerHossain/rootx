@@ -2,7 +2,7 @@ package entity
 
 import (
 	"time"
-    "{{AppName}}/pkg/core/entity"
+    "github.com/JubaerHossain/rootx/pkg/core/entity"
 )
 
 // {{SingularCapitalName}} represents the {{SingularLowerName}} entity

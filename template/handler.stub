@@ -5,9 +5,9 @@ import (
 
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/entity"
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/service"
-	"{{AppName}}/pkg/core/app"
-	utilQuery "{{AppName}}/pkg/query"
-	"{{AppName}}/pkg/utils"
+	"github.com/JubaerHossain/rootx/pkg/core/app"
+	utilQuery "github.com/JubaerHossain/rootx/pkg/query"
+	"github.com/JubaerHossain/rootx/pkg/utils"
 )
 
 // Handler handles API requests

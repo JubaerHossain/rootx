@@ -9,9 +9,9 @@ import (
 
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/entity"
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/repository"
-	"{{AppName}}/pkg/core/app"
-	"{{AppName}}/pkg/core/cache"
-	"{{AppName}}/pkg/core/config"
+	"github.com/JubaerHossain/rootx/pkg/core/app"
+	"github.com/JubaerHossain/rootx/pkg/core/cache"
+	"github.com/JubaerHossain/rootx/pkg/core/config"
 )
 
 type {{SingularCapitalName}}RepositoryImpl struct {

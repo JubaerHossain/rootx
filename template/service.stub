@@ -8,7 +8,7 @@ import (
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/entity"
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/infrastructure/persistence"
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/repository"
-	"{{AppName}}/pkg/core/app"
+	"github.com/JubaerHossain/rootx/pkg/core/app"
 )
 
 type Service struct {

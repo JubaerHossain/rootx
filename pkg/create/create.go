@@ -78,10 +78,15 @@ func Run(cmd *cobra.Command, args []string) error {
 		time.Sleep(100 * time.Millisecond) // Simulate some work being done
 	}
 
+	moduleName, err := getModuleName()
+	if err != nil {
+		return  errors.New("module name not found in go.mod")
+	}
+
 	if len(args) < 2 {
 		return errors.New("not enough arguments")
 	}
-	AppName = "github.com/JubaerHossain/rootx"
+	AppName = moduleName
 	name := args[1]
 	name = Lower(Plural(name))
 	fs := afero.NewBasePathFs(afero.NewOsFs(), AppRoot+"/")
