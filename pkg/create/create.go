@@ -498,20 +498,21 @@ func createMainFile(templatePath, targetPath string) error {
 }
 
 // Function to create or load .env file
-func createEnvFile() error {
+func createEnvFile(fs afero.Fs, name string) error {
 	envFile := ".env"
 	if _, err := os.Stat(envFile); os.IsNotExist(err) {
-		templateFile := filepath.Join("template", "env.stub")
-		content, err := os.ReadFile(templateFile)
-		if err != nil {
-			return fmt.Errorf("failed to read template file: %w", err)
-		}
-		if err := os.WriteFile(envFile, content, 0644); err != nil {
+		templateFile := filepath.Join(TemplateDir, "env.stub")
+		// content, err := fileContents(templateFile)
+		// if err != nil {
+		// 	return fmt.Errorf("failed to read template file: %w", err)
+		// }
+		if err := createFile(fs, name, templateFile, envFile); err != nil {
 			return fmt.Errorf("failed to create .env file: %w", err)
 		}
 	}
 	return nil
 }
+
 
 // Function to generate main.go file
 func generateMainFile() error {
@@ -615,7 +616,8 @@ func RunApp(cmd *cobra.Command, args []string) error {
 		time.Sleep(100 * time.Millisecond) // Simulate some work being done
 	}
 	// Load environment variables from existing .env file or create a new one
-	if err := createEnvFile(); err != nil {
+	fs := afero.NewOsFs()
+	if err := createEnvFile(fs, "."); err != nil {
 		return fmt.Errorf("error creating .env file: %w", err)
 	}
 
