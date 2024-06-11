@@ -467,107 +467,14 @@ func createDocsFile(name string) error {
 	}
 	return nil
 }
-
-func runCommand(name string, args ...string) error {
-	cmd := exec.Command(name, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to run command: %w", err)
-	}
-	return nil
-}
-
-func createMainFile(templatePath, targetPath string) error {
-	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-		content, err := os.ReadFile(templatePath)
-		if err != nil {
-			return fmt.Errorf("failed to read template file: %w", err)
-		}
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-			return fmt.Errorf("failed to create directories: %w", err)
-		}
-		if err := os.WriteFile(targetPath, content, 0644); err != nil {
-			return fmt.Errorf("failed to create main.go file: %w", err)
+func createServerFile(name string) error {
+	if _, err := os.Stat(name); os.IsNotExist(err) {
+		if err := os.Mkdir(name, 0755); err != nil {
+			return fmt.Errorf("failed to create directory: %w", err)
 		}
 	}
-	return nil
-}
-
-// Function to create or load .env file
-func createEnvFile() error {
-	envContent := `# Environment settings
-		APP_ENV=development
-		VERSION=1.0.0
-		APP_PORT=9008
-
-		# Database settings
-		DB_TYPE="postgres"
-		DB_HOST="localhost"
-		DB_PORT=5433
-		DB_NAME="starter_api"
-		DB_USER="postgres"
-		DB_PASSWORD="password"
-		DB_SSLMODE="enable"
-
-		# Migration and seeding settings
-		MIGRATE=false
-		SEED=false
-
-		# Redis settings
-		REDIS_URI="localhost:6379"
-		REDIS_PASSWORD=
-		IS_REDIS=false
-		REDIS_DB=0
-		REDIS_EXP="86400"
-
-		# Rate limiting settings
-		RATE_LIMIT_ENABLED=true
-		RATE_LIMIT="500"
-		RATE_LIMIT_DURATION="1m"
-
-		# JWT settings
-		JWT_SECRET_KEY=secret
-		JWT_EXPIRATION="1h"
-		`
-
-	// Open or create the .env file
-	envFile, err := os.Create(".env")
-	if err != nil {
-		fmt.Println("Error creating .env file:", err)
-		return err
-	}
-	defer envFile.Close()
-
-	// Write the content to the .env file
-	_, err = envFile.WriteString(envContent)
-	if err != nil {
-		fmt.Println("Error writing to .env file:", err)
-		return err
-	}
-	return nil
-}
-
-func makeMainFile() error {
-
-	targetDir := filepath.Join("./", "cmd", "server")
-	targetPath := filepath.Join(targetDir, "main.go")
-
-	// Ensure that the target directory exists
-	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-		os.MkdirAll(targetPath, 0755)
-	}
-
-	// Ensure that the target directory exists
-	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-		if err := os.MkdirAll(targetPath, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", targetPath, err)
-		}
-	}
-
-	// Check if main.go already exists
-	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-		mainContent := `package main
+	filename := filepath.Join(name, "main.go")
+	mainContent := `package main
 
 import (
 	"context"
@@ -711,23 +618,93 @@ func gracefulShutdown(server *http.Server, timeout time.Duration) {
 	log.Printf("✅ Server gracefully stopped")
 }
 `
-		if err := os.WriteFile(targetPath, []byte(mainContent), 0644); err != nil {
+
+	if err := os.WriteFile(filename, []byte(mainContent), 0644); err != nil {
+		return fmt.Errorf("failed to create server file: %w", err)
+	}
+	return nil
+}
+
+func runCommand(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run command: %w", err)
+	}
+	return nil
+}
+
+func createMainFile(templatePath, targetPath string) error {
+	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+		content, err := os.ReadFile(templatePath)
+		if err != nil {
+			return fmt.Errorf("failed to read template file: %w", err)
+		}
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+			return fmt.Errorf("failed to create directories: %w", err)
+		}
+		if err := os.WriteFile(targetPath, content, 0644); err != nil {
 			return fmt.Errorf("failed to create main.go file: %w", err)
 		}
 	}
-
 	return nil
 }
 
-// Function to generate main.go file
-func generateMainFile() error {
-	templatePath := path.Join("template", "main.go")
-	targetPath := path.Join(AppRoot, "cmd", "server", "main.go")
-	if err := createMainFile(templatePath, targetPath); err != nil {
-		return fmt.Errorf("error creating main.go file: %w", err)
+// Function to create or load .env file
+func createEnvFile() error {
+	envContent := `# Environment settings
+		APP_ENV=development
+		VERSION=1.0.0
+		APP_PORT=9008
+
+		# Database settings
+		DB_TYPE="postgres"
+		DB_HOST="localhost"
+		DB_PORT=5433
+		DB_NAME="starter_api"
+		DB_USER="postgres"
+		DB_PASSWORD="password"
+		DB_SSLMODE="enable"
+
+		# Migration and seeding settings
+		MIGRATE=false
+		SEED=false
+
+		# Redis settings
+		REDIS_URI="localhost:6379"
+		REDIS_PASSWORD=
+		IS_REDIS=false
+		REDIS_DB=0
+		REDIS_EXP="86400"
+
+		# Rate limiting settings
+		RATE_LIMIT_ENABLED=true
+		RATE_LIMIT="500"
+		RATE_LIMIT_DURATION="1m"
+
+		# JWT settings
+		JWT_SECRET_KEY=secret
+		JWT_EXPIRATION="1h"
+		`
+
+	// Open or create the .env file
+	envFile, err := os.Create(".env")
+	if err != nil {
+		fmt.Println("Error creating .env file:", err)
+		return err
+	}
+	defer envFile.Close()
+
+	// Write the content to the .env file
+	_, err = envFile.WriteString(envContent)
+	if err != nil {
+		fmt.Println("Error writing to .env file:", err)
+		return err
 	}
 	return nil
 }
+
 
 func loadEnvFile(filename string) (map[string]string, error) {
 	envMap := make(map[string]string)
@@ -811,12 +788,7 @@ func DatabaseConfig() error {
 
 func RunApp(cmd *cobra.Command, args []string) error {
 	bar := CreateProgressBar("App Running: ")
-	// Perform your tasks here
-	for i := 0; i <= 100; i++ {
-		// Update progress bar
-		bar.Add(1)
-		time.Sleep(100 * time.Millisecond) // Simulate some work being done
-	}
+	
 	// Load environment variables from existing .env file or create a new one
 	if err := createEnvFile(); err != nil {
 		return fmt.Errorf("error creating .env file: %w", err)
@@ -826,8 +798,19 @@ func RunApp(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error creating database config: %w", err)
 	}
 
-	if err := makeMainFile(); err != nil {
-		return fmt.Errorf("error creating main.go file: %w", err)
+	// Perform your tasks here
+	for i := 0; i <= 100; i++ {
+		// Update progress bar
+		bar.Add(1)
+		time.Sleep(100 * time.Millisecond) // Simulate some work being done
+	}
+
+	// if err := makeMainFile(); err != nil {
+	// 	return fmt.Errorf("error creating main.go file: %w", err)
+	// }
+
+	if err := createServerFile("cmd"); err != nil {
+		return fmt.Errorf("error creating server file: %w", err)
 	}
 
 	if err := runCommand("go", "mod", "tidy"); err != nil {
@@ -916,7 +899,7 @@ func terminateRunningProcess() error {
 
 // Helper function to run the server and save its PID
 func runServer() error {
-	cmd := exec.Command("go", "run", "./cmd/server/main.go")
+	cmd := exec.Command("go", "run", "./cmd/main.go")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
