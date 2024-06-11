@@ -604,9 +604,15 @@ func RunApp(cmd *cobra.Command, args []string) error {
 		time.Sleep(100 * time.Millisecond) // Simulate some work being done
 	}
 
-	if err := createEnvFile(); err != nil {
-		return fmt.Errorf("error creating .env file: %w", err)
+	envPath := "template/env.stub"
+	envTargetPath := "./.env"
+	if err := createMainFile(envPath, envTargetPath); err != nil {
+		return fmt.Errorf("error creating main.go file: %w", err)
 	}
+
+	// if err := createEnvFile(); err != nil {
+	// 	return fmt.Errorf("error creating .env file: %w", err)
+	// }
 
 	if err := DatabaseConfig(); err != nil {
 		return fmt.Errorf("error creating database config: %w", err)
