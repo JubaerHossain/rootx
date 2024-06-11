@@ -16,3 +16,4 @@ docker-compose.yml
 server.pid
 # release
 .DS_Store
+vendor
