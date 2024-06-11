@@ -550,8 +550,8 @@ func createEnvFile() error {
 }
 
 func makeMainFile() error {
-	targetDir := path.Join(AppRoot, "cmd", "server")
-	targetPath := path.Join(targetDir, "main.go")
+	targetDir := filepath.Join(AppRoot, "cmd", "server")
+	targetPath := filepath.Join(targetDir, "main.go")
 
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
 		// Ensure that the target directory exists
