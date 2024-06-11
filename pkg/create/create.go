@@ -88,6 +88,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		return errors.New("not enough arguments")
 	}
 	AppName = moduleName
+	fmt.Println(AppName)
 	name := args[1]
 	name = Lower(Plural(name))
 	fs := afero.NewBasePathFs(afero.NewOsFs(), AppRoot+"/")
@@ -101,6 +102,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if err := RunApp(nil, nil); err != nil {
+		fmt.Println(err)
 		return err
 	}
 	return nil
