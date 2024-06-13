@@ -14,12 +14,13 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"github.com/schollz/progressbar/v3"
+
 	"github.com/gertd/go-pluralize"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
+	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/joho/godotenv"
 )
 
 const (
@@ -67,7 +68,6 @@ func CreateProgressBar(description string) *progressbar.ProgressBar {
 	return bar
 }
 
-
 func Run(cmd *cobra.Command, args []string) error {
 
 	bar := CreateProgressBar("Creating module: ")
@@ -81,7 +81,7 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	moduleName, err := getModuleName()
 	if err != nil {
-		return  errors.New("module name not found in go.mod")
+		return errors.New("module name not found in go.mod")
 	}
 
 	if len(args) < 2 {
@@ -101,6 +101,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if err := RunApp(nil, nil); err != nil {
+		fmt.Println(err)
 		return err
 	}
 	return nil
@@ -326,10 +327,10 @@ func MigrationWithSeederCreate(cmd *cobra.Command, args []string) error {
 }
 
 func loadEnv() error {
-    err := godotenv.Load(".env")
-    if err != nil {
-        return fmt.Errorf("failed to load .env file: %w", err)
-    }
+	err := godotenv.Load(".env")
+	if err != nil {
+		return fmt.Errorf("failed to load .env file: %w", err)
+	}
 	return nil
 }
 
@@ -338,10 +339,10 @@ func connectDB() (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("failed to load .env file: %w", err)
 	}
 	dbHost := os.Getenv("DB_HOST")
-    dbPortStr := os.Getenv("DB_PORT")
-    dbUser := os.Getenv("DB_USER")
-    dbPassword := os.Getenv("DB_PASSWORD")
-    dbName := os.Getenv("DB_NAME")
+	dbPortStr := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
 
 	dbPort, err := strconv.Atoi(dbPortStr)
 	if err != nil {
@@ -357,7 +358,7 @@ func connectDB() (*pgxpool.Pool, error) {
 
 	config.MaxConnIdleTime = 10 * time.Minute
 	config.MaxConnLifetime = 60 * time.Minute // Set to 1 hour
-	config.MaxConns = 50000                    // Adjust based on your environment
+	config.MaxConns = 50000                   // Adjust based on your environment
 	config.MinConns = 100
 
 	return pgxpool.NewWithConfig(context.Background(), config)
@@ -397,8 +398,6 @@ func ApplyMigrations(cmd *cobra.Command, args []string) error {
 		bar.Add(1)
 		time.Sleep(100 * time.Millisecond) // Simulate some work being done
 	}
-
-
 
 	return nil
 }
@@ -468,6 +467,163 @@ func createDocsFile(name string) error {
 	}
 	return nil
 }
+func createServerFile(name string) error {
+	if _, err := os.Stat(name); os.IsNotExist(err) {
+		if err := os.Mkdir(name, 0755); err != nil {
+			return fmt.Errorf("failed to create directory: %w", err)
+		}
+	}
+	filename := filepath.Join(name, "main.go")
+	mainContent := `package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"runtime"
+	"syscall"
+	"time"
+
+	"github.com/JubaerHossain/rootx/pkg/core/app"
+	"github.com/JubaerHossain/rootx/pkg/core/health"
+	"github.com/JubaerHossain/rootx/pkg/core/middleware"
+	"github.com/JubaerHossain/rootx/pkg/core/monitor"
+	"github.com/JubaerHossain/rootx/pkg/utils"
+)
+
+// @title           Golang Starter API
+// @version         1.0
+// @description     This is a starter API for Golang projects
+// @host            localhost:3021
+// @BasePath        /api
+
+func main() {
+	// Initialize the application
+	application, err := app.StartApp()
+	if err != nil {
+		log.Fatalf("❌ Failed to start application: %v", err)
+	}
+
+	// Initialize HTTP server
+	httpServer := initHTTPServer(application)
+
+	go func() {
+		if err := startHTTPServer(application, httpServer); err != nil {
+			log.Printf("❌ %v", err)
+			log.Println("🔄 Trying to start the server on another port...")
+			if err := startHTTPServerOnAvailablePort(application, httpServer); err != nil {
+				log.Fatalf("❌ Failed to start server on another port: %v", err)
+			}
+		}
+	}()
+
+	baseURL := fmt.Sprintf("http://localhost:%d", application.Config.AppPort)
+	log.Printf("🌐 API base URL: %s", baseURL)
+
+	// Open Swagger URL in browser if in development environment
+	if application.Config.AppEnv == "development" {
+		openBrowser(baseURL)
+	}
+
+	// Graceful shutdown
+	gracefulShutdown(httpServer, 5*time.Second)
+}
+
+func initHTTPServer(application *app.App) *http.Server {
+	return &http.Server{
+		Addr:    fmt.Sprintf(":%d", application.Config.AppPort),
+		Handler: setupRoutes(application),
+	}
+}
+
+func startHTTPServer(application *app.App, server *http.Server) error {
+	err := server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("Could not start server: %v", err)
+	}
+	return nil
+}
+
+func startHTTPServerOnAvailablePort(application *app.App, server *http.Server) error {
+	for i := application.Config.AppPort + 1; i <= application.Config.AppPort+10; i++ {
+		newAddr := fmt.Sprintf(":%d", i)
+		server.Addr = newAddr
+		log.Printf("Trying to start server on port %d...", i)
+		err := startHTTPServer(application, server)
+		if err == nil {
+			log.Printf("✅ Server started on port %d", i)
+			return nil
+		}
+	}
+	return errors.New("Could not find available port to start server")
+}
+
+func setupRoutes(application *app.App) http.Handler {
+	// Create a new ServeMux
+	mux := http.NewServeMux()
+
+	// Register health check endpoint
+	mux.Handle("/health", middleware.LoggingMiddleware(http.HandlerFunc(health.HealthCheckHandler())))
+
+	// Register monitoring endpoint
+	mux.Handle("/metrics", monitor.MetricsHandler())
+
+	// Add security headers
+	mux.Handle("/", middleware.LimiterMiddleware(middleware.LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		utils.WriteJSONResponse(w, http.StatusOK, map[string]interface{}{"message": "Welcome to the API"})
+	}))))
+
+	return middleware.PrometheusMiddleware(mux, monitor.RequestsTotal(), monitor.RequestDuration())
+}
+
+func openBrowser(url string) {
+	var cmd string
+	var args []string
+
+	switch runtime.GOOS {
+	case "linux":
+		cmd = "xdg-open"
+	case "windows":
+		cmd = "rundll32"
+		args = append(args, "url.dll,FileProtocolHandler")
+	case "darwin":
+		cmd = "open"
+	default:
+		return
+	}
+	args = append(args, url)
+	if err := exec.Command(cmd, args...).Start(); err != nil {
+		log.Printf("Failed to open browser: %v", err)
+	}
+}
+
+func gracefulShutdown(server *http.Server, timeout time.Duration) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Printf("⚙️ Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("❌ Could not gracefully shutdown the server: %v", err)
+	}
+
+	log.Printf("✅ Server gracefully stopped")
+}
+`
+
+	if err := os.WriteFile(filename, []byte(mainContent), 0644); err != nil {
+		return fmt.Errorf("failed to create server file: %w", err)
+	}
+	return nil
+}
 
 func runCommand(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
@@ -495,80 +651,119 @@ func createMainFile(templatePath, targetPath string) error {
 	return nil
 }
 
+// Function to create or load .env file
 func createEnvFile() error {
-	envFile := ".env"
-	if _, err := os.Stat(envFile); os.IsNotExist(err) {
-		templateFile := filepath.Join("template", "env.stub")
-		content, err := os.ReadFile(templateFile)
-		if err != nil {
-			return fmt.Errorf("failed to read template file: %w", err)
-		}
-		if err := os.WriteFile(envFile, content, 0644); err != nil {
-			return fmt.Errorf("failed to create .env file: %w", err)
-		}
+	envContent := `# Environment settings
+		APP_ENV=development
+		VERSION=1.0.0
+		APP_PORT=9008
+
+		# Database settings
+		DB_TYPE="postgres"
+		DB_HOST="localhost"
+		DB_PORT=5433
+		DB_NAME="starter_api"
+		DB_USER="postgres"
+		DB_PASSWORD="password"
+		DB_SSLMODE="enable"
+
+		# Migration and seeding settings
+		MIGRATE=false
+		SEED=false
+
+		# Redis settings
+		REDIS_URI="localhost:6379"
+		REDIS_PASSWORD=
+		IS_REDIS=false
+		REDIS_DB=0
+		REDIS_EXP="86400"
+
+		# Rate limiting settings
+		RATE_LIMIT_ENABLED=true
+		RATE_LIMIT="500"
+		RATE_LIMIT_DURATION="1m"
+
+		# JWT settings
+		JWT_SECRET_KEY=secret
+		JWT_EXPIRATION="1h"
+		`
+
+	// Open or create the .env file
+	envFile, err := os.Create(".env")
+	if err != nil {
+		fmt.Println("Error creating .env file:", err)
+		return err
+	}
+	defer envFile.Close()
+
+	// Write the content to the .env file
+	_, err = envFile.WriteString(envContent)
+	if err != nil {
+		fmt.Println("Error writing to .env file:", err)
+		return err
 	}
 	return nil
 }
 
+
 func loadEnvFile(filename string) (map[string]string, error) {
-    envMap := make(map[string]string)
+	envMap := make(map[string]string)
 
-    file, err := os.Open(filename)
-    if err != nil {
-        return nil, err
-    }
-    defer file.Close()
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-        line := scanner.Text()
-        if strings.HasPrefix(line, "#") || len(strings.TrimSpace(line)) == 0 {
-            continue // skip comments and empty lines
-        }
-        parts := strings.SplitN(line, "=", 2)
-        if len(parts) != 2 {
-            continue
-        }
-        key := strings.TrimSpace(parts[0])
-        value := strings.TrimSpace(parts[1])
-        envMap[key] = value
-    }
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") || len(strings.TrimSpace(line)) == 0 {
+			continue // skip comments and empty lines
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		envMap[key] = value
+	}
 
-    if err := scanner.Err(); err != nil {
-        return nil, err
-    }
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
 
-    return envMap, nil
+	return envMap, nil
 }
 
 // Function to write the map back to the .env file
 func writeEnvFile(filename string, envMap map[string]string) error {
-    file, err := os.Create(filename)
-    if err != nil {
-        return err
-    }
-    defer file.Close()
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
-    writer := bufio.NewWriter(file)
-    for key, value := range envMap {
-        line := fmt.Sprintf("%s=%s\n", key, value)
-        if _, err := writer.WriteString(line); err != nil {
-            return err
-        }
-    }
-    return writer.Flush()
+	writer := bufio.NewWriter(file)
+	for key, value := range envMap {
+		line := fmt.Sprintf("%s=%s\n", key, value)
+		if _, err := writer.WriteString(line); err != nil {
+			return err
+		}
+	}
+	return writer.Flush()
 }
 
-func DatabaseConfig() error{
+func DatabaseConfig() error {
 
 	envFile := ".env"
 
-    // Load the existing .env file into a map
-    envMap, err := loadEnvFile(envFile)
-    if err != nil {
-        return fmt.Errorf("failed to load .env file: %w", err)
-    }
-
+	// Load the existing .env file into a map
+	envMap, err := loadEnvFile(envFile)
+	if err != nil {
+		return fmt.Errorf("failed to load .env file: %w", err)
+	}
 
 	dbUser := getUserInput("Enter database user: ")
 	dbPassword := getUserInput("Enter database password: ")
@@ -577,17 +772,15 @@ func DatabaseConfig() error{
 	dbName := getUserInput("Enter database name: ")
 
 	envMap["DB_HOST"] = dbHost
-    envMap["DB_PORT"] = dbPortStr
-    envMap["DB_NAME"] = dbName
-    envMap["DB_USER"] = dbUser
-    envMap["DB_PASSWORD"] = dbPassword
+	envMap["DB_PORT"] = dbPortStr
+	envMap["DB_NAME"] = dbName
+	envMap["DB_USER"] = dbUser
+	envMap["DB_PASSWORD"] = dbPassword
 
 	// Write the updated map back to the .env file
-    if err := writeEnvFile(envFile, envMap); err != nil {
-        fmt.Printf("Error writing to .env file: %v\n", err)
-    } else {
-        fmt.Println("Successfully updated .env file")
-    }
+	if err := writeEnvFile(envFile, envMap); err != nil {
+		fmt.Printf("Error writing to .env file: %v\n", err)
+	}
 
 	return nil
 
@@ -595,13 +788,8 @@ func DatabaseConfig() error{
 
 func RunApp(cmd *cobra.Command, args []string) error {
 	bar := CreateProgressBar("App Running: ")
-	// Perform your tasks here
-	for i := 0; i <= 100; i++ {
-		// Update progress bar
-		bar.Add(1)
-		time.Sleep(100 * time.Millisecond) // Simulate some work being done
-	}
-
+	
+	// Load environment variables from existing .env file or create a new one
 	if err := createEnvFile(); err != nil {
 		return fmt.Errorf("error creating .env file: %w", err)
 	}
@@ -610,17 +798,25 @@ func RunApp(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error creating database config: %w", err)
 	}
 
-	
-	templatePath := "template/main.stub"
-	targetPath := "./cmd/server/main.go"
-	if err := createMainFile(templatePath, targetPath); err != nil {
-		return fmt.Errorf("error creating main.go file: %w", err)
+	// Perform your tasks here
+	for i := 0; i <= 100; i++ {
+		// Update progress bar
+		bar.Add(1)
+		time.Sleep(100 * time.Millisecond) // Simulate some work being done
+	}
+
+	// if err := makeMainFile(); err != nil {
+	// 	return fmt.Errorf("error creating main.go file: %w", err)
+	// }
+
+	if err := createServerFile("cmd"); err != nil {
+		return fmt.Errorf("error creating server file: %w", err)
 	}
 
 	if err := runCommand("go", "mod", "tidy"); err != nil {
 		return fmt.Errorf("failed to run go mod tidy: %w", err)
 	}
-	
+
 	if err := runCommand("go", "mod", "vendor"); err != nil {
 		return fmt.Errorf("failed to run go mod vendor: %w", err)
 	}
@@ -643,7 +839,7 @@ func RunApiDocs(cmd *cobra.Command, args []string) error {
 	if err := createDocsFile("docs"); err != nil {
 		return fmt.Errorf("error creating docs file: %w", err)
 	}
-	
+
 	if err := runCommand("go", "get", "github.com/swaggo/swag/cmd/swag@v1.16.3"); err != nil {
 		return fmt.Errorf("failed to install swag: %w", err)
 	}
@@ -703,7 +899,7 @@ func terminateRunningProcess() error {
 
 // Helper function to run the server and save its PID
 func runServer() error {
-	cmd := exec.Command("go", "run", "./cmd/server/main.go")
+	cmd := exec.Command("go", "run", "./cmd/main.go")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
