@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/JubaerHossain/rootx/pkg/core/app"
 	coreEntity "github.com/JubaerHossain/rootx/pkg/core/entity"
 	"github.com/JubaerHossain/rootx/pkg/utils"
 	"github.com/go-playground/validator/v10"
@@ -21,7 +22,62 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Pagination(db *pgxpool.Pool, queryValues map[string][]string, query string, args ...interface{}) (string, []interface{}) {
+func Pagination(req *http.Request, app *app.App, table string) (pagination coreEntity.Pagination, returnLimit int, returnOffset int, err error) {
+	ctx := req.Context()
+
+	// Count total items
+	var totalItems int
+	if err := app.DB.QueryRow(ctx, "SELECT COUNT(*) FROM "+table).Scan(&totalItems); err != nil {
+		return coreEntity.Pagination{}, 0, 0, err
+	}
+
+	// Extract limit and offset from query parameters
+	queryValues := req.URL.Query()
+	limit := 10 // Default limit
+	offset := 0 // Default offset (starting from 0 for database query)
+
+	if limitStr := queryValues.Get("limit"); limitStr != "" {
+		limit, _ = strconv.Atoi(limitStr)
+	}
+
+	if offsetStr := queryValues.Get("offset"); offsetStr != "" {
+		offset, _ = strconv.Atoi(offsetStr)
+	}
+
+	// Calculate current page based on offset and limit
+	currentPage := offset/limit + 1
+
+	// Calculate total pages
+	totalPages := totalItems / limit
+	if totalItems%limit != 0 {
+		totalPages++
+	}
+
+	// Calculate next and previous pages
+	nextPage := currentPage + 1
+	previousPage := currentPage - 1
+
+	if previousPage < 1 {
+		previousPage = 1
+	}
+
+	if nextPage > totalPages {
+		nextPage = totalPages
+	}
+
+	// Prepare pagination struct
+	return coreEntity.Pagination{
+		TotalItems:   totalItems,
+		TotalPages:   totalPages,
+		CurrentPage:  currentPage,
+		NextPage:     &nextPage,
+		PreviousPage: &previousPage,
+		FirstPage:    1,
+		LastPage:     totalPages,
+	}, limit, offset, nil
+}
+
+func Paginate(ctx context.Context, db *pgxpool.Pool, queryValues map[string][]string, totalItems int, query string, args ...interface{}) ([]pgx.Row, coreEntity.Pagination, error) {
 	q := url.Values(queryValues)
 	page, _ := strconv.Atoi(q.Get("page"))
 	if page <= 0 {
@@ -36,60 +92,40 @@ func Pagination(db *pgxpool.Pool, queryValues map[string][]string, query string,
 
 	offset := (page - 1) * pageSize
 
+	var nextPage, previousPage *int
+	if page > 1 {
+		prevPage := page - 1
+		previousPage = &prevPage
+	}
+	// You may need to adjust the condition based on your total items count
+	if offset+pageSize < totalItems {
+		nextPageValue := page + 1
+		nextPage = &nextPageValue
+	}
+
+	pagination := coreEntity.Pagination{
+		TotalItems:   totalItems,
+		TotalPages:   int(math.Ceil(float64(totalItems) / float64(pageSize))),
+		CurrentPage:  page,
+		NextPage:     nextPage,
+		PreviousPage: previousPage,
+		FirstPage:    1,
+		LastPage:     int(math.Ceil(float64(totalItems) / float64(pageSize))),
+	}
+
 	query += fmt.Sprintf(" LIMIT %d OFFSET %d", pageSize, offset)
 
-	return query, args
-}
+	rows, err := db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, pagination, err
+	}
 
-func Paginate(ctx context.Context, db *pgxpool.Pool, queryValues map[string][]string, totalItems int, query string, args ...interface{}) ([]pgx.Row, coreEntity.Pagination, error) {
-    q := url.Values(queryValues)
-    page, _ := strconv.Atoi(q.Get("page"))
-    if page <= 0 {
-        page = 1
-    }
+	var result []pgx.Row
+	for rows.Next() {
+		result = append(result, rows)
+	}
 
-    pageSize, _ := strconv.Atoi(q.Get("pageSize"))
-    switch {
-    case pageSize <= 0:
-        pageSize = 10
-    }
-
-    offset := (page - 1) * pageSize
-
-    var nextPage, previousPage *int
-    if page > 1 {
-        prevPage := page - 1
-        previousPage = &prevPage
-    }
-    // You may need to adjust the condition based on your total items count
-    if offset+pageSize < totalItems {
-        nextPageValue := page + 1
-        nextPage = &nextPageValue
-    }
-
-    pagination := coreEntity.Pagination{
-        TotalItems:   totalItems,
-        TotalPages:   int(math.Ceil(float64(totalItems) / float64(pageSize))),
-        CurrentPage:  page,
-        NextPage:     nextPage,
-        PreviousPage: previousPage,
-        FirstPage:    1,
-        LastPage:     int(math.Ceil(float64(totalItems) / float64(pageSize))),
-    }
-
-    query += fmt.Sprintf(" LIMIT %d OFFSET %d", pageSize, offset)
-
-    rows, err := db.Query(ctx, query, args...)
-    if err != nil {
-        return nil, pagination, err
-    }
-
-    var result []pgx.Row
-    for rows.Next() {
-        result = append(result, rows)
-    }
-
-    return result, pagination, nil
+	return result, pagination, nil
 }
 
 func RawPagination(sqlQuery string, queryValues map[string][]string) string {

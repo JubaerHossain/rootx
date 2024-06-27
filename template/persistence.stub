@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/entity"
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/repository"
+	utilQuery "github.com/JubaerHossain/rootx/pkg/query"
 	"github.com/JubaerHossain/rootx/pkg/core/app"
 	"github.com/JubaerHossain/rootx/pkg/core/cache"
 	"github.com/JubaerHossain/rootx/pkg/core/config"
@@ -46,8 +48,36 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *ht
 		return {{SingularLowerName}}s, nil
 	}
 
-	{{SingularLowerName}}s := []*entity.Response{{SingularCapitalName}}{}
+	
 	query := "SELECT id, name, status, created_at FROM {{PluralLowerName}}" // Example SQL query
+
+	// Apply filters from query parameters
+	queryValues := req.URL.Query()
+	var filters []string
+
+	// Filter by search query
+	if search := queryValues.Get("search"); search != "" {
+		filters = append(filters, fmt.Sprintf("name ILIKE '%%%s%%'", search))
+	}
+
+	// Filter by status
+	if status := queryValues.Get("status"); status != "" {
+		filters = append(filters, fmt.Sprintf("status = %s", status))
+	}
+
+	// Apply filters to query
+	if len(filters) > 0 {
+		query += " WHERE " + strings.Join(filters, " AND ")
+	}
+
+	// Pagination and limits
+	pagination, limit, offset, err := utilQuery.Pagination(req, r.app, "{{PluralLowerName}}")
+	if err != nil {
+		return nil, fmt.Errorf("pagination error: %w", err)
+	}
+
+	// Apply pagination to query
+	query += fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
 
 	// Get database connection from pool
 	conn, err := r.app.DB.Acquire(ctx)
@@ -64,6 +94,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *ht
 	defer rows.Close()
 
 	// Iterate over the rows and parse the results
+	{{SingularLowerName}}s := []*entity.Response{{SingularCapitalName}}{}
 	for rows.Next() {
 		var {{SingularLowerName}} entity.Response{{SingularCapitalName}}
 		err := rows.Scan(&{{SingularLowerName}}.ID, &{{SingularLowerName}}.Name, &{{SingularLowerName}}.Status, &{{SingularLowerName}}.CreatedAt)
@@ -80,7 +111,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *ht
 
 	response := entity.{{SingularCapitalName}}ResponsePagination{
 		Data: {{SingularLowerName}}s,
-		// Other pagination details can be set here
+		Pagination: pagination,
 	}
 
 	// Cache the response
