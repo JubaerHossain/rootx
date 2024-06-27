@@ -26,17 +26,12 @@ func NewPgxDatabaseService(cfg *config.Config) (*PgxDatabaseService, error) {
 		return nil, fmt.Errorf("failed to parse database config: %w", err)
 	}
 
-	fmt.Println("MaxIdleConns:", cfg.DBMaxIdleConns)
-	fmt.Println("MaxConnLifetime:", cfg.DBMaxConnLifetime)
-	fmt.Println("MaxConns:", cfg.MaxConns)
-	fmt.Println("MinConns:", cfg.MinConns)
-
 	config.MaxConnIdleTime = time.Duration(cfg.DBMaxIdleConns) * time.Minute
 	config.MaxConnLifetime = time.Duration(cfg.DBMaxConnLifetime) * time.Minute
 	// config.MaxConnIdleTime = 10 * time.Minute
 	// config.MaxConnLifetime = 60 * time.Minute // Set to 1 hour
-	config.MaxConns = int32(cfg.MaxConns)                  // Adjust based on your environment
-	config.MinConns = int32(cfg.MinConns)                   // Adjust based on your environment
+	config.MaxConns = int32(cfg.MaxConns) // Adjust based on your environment
+	config.MinConns = int32(cfg.MinConns) // Adjust based on your environment
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
