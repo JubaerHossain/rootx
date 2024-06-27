@@ -666,6 +666,10 @@ func createEnvFile() error {
 		DB_USER="postgres"
 		DB_PASSWORD="password"
 		DB_SSLMODE="enable"
+		DB_MAX_IDLE_CONNS=10
+		DB_MAX_CONN_LIFETIME=60
+		MAX_CONNS=1000
+		MIN_CONNS=50
 
 		# Migration and seeding settings
 		MIGRATE=false

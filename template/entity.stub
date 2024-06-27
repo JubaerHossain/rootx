@@ -7,18 +7,18 @@ import (
 
 // {{SingularCapitalName}} represents the {{SingularLowerName}} entity
 type {{SingularCapitalName}} struct {
-	ID        uint          `json:"id" gorm:"primaryKey;autoIncrement;not null"` // Primary key
-	Name      string        `json:"name" gorm:"type:varchar(100);unique;not null" validate:"required,min=3,max=100"`
-	CreatedAt time.Time     `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt time.Time     `json:"updated_at" gorm:"autoUpdateTime"`
-	Status    entity.Status `json:"status" gorm:"default:active" validate:"required,oneof=active inactive pending"`
+	ID        uint          `json:"id"` // Primary key
+	Name      string        `json:"name" validate:"required,min=3,max=100"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
+	Status    bool          `json:"status"`
 }
 
 // Update{{SingularCapitalName}} represents the {{SingularLowerName}} update request
 type Update{{SingularCapitalName}} struct {
 	Name   string        `json:"name" validate:"omitempty,min=3,max=100"`
-	Status entity.Status `json:"status" gorm:"default:active" validate:"omitempty,oneof=active inactive pending"`
-	UpdatedAt time.Time     `json:"updated_at" gorm:"autoUpdateTime"`
+	Status bool          `json:"status"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 // Response{{SingularCapitalName}} represents the {{SingularLowerName}} response
@@ -27,7 +27,7 @@ type Response{{SingularCapitalName}} struct {
 	Name      string        `json:"name"`
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
-	Status    entity.Status `json:"status"`
+	Status    bool          `json:"status"`
 }
 
 type {{SingularCapitalName}}ResponsePagination struct {

@@ -18,6 +18,10 @@ type Config struct {
 	DBUser            string `mapstructure:"DB_USER"`
 	DBPassword        string `mapstructure:"DB_PASSWORD"`
 	DBSSLMode         string `mapstructure:"DB_SSLMODE"`
+	DBMaxIdleConns    int    `mapstructure:"DB_MAX_IDLE_CONNS"`
+	DBMaxConnLifetime int    `mapstructure:"DB_MAX_CONN_LIFETIME"`
+	MaxConns          int    `mapstructure:"MAX_CONNS"`
+	MinConns          int    `mapstructure:"MIN_CONNS"`
 	Migrate           bool   `mapstructure:"MIGRATE"`
 	Seed              bool   `mapstructure:"SEED"`
 	RedisExp          int    `mapstructure:"REDIS_EXP"`
@@ -73,4 +77,3 @@ func setDefaultValues(cfg *Config) {
 	}
 	// Add default values for other configuration fields as needed
 }
-

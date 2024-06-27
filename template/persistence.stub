@@ -99,7 +99,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}s(req 
 func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}ByID({{SingularLowerName}}ID uint) (*entity.{{SingularCapitalName}}, error) {
 	// Implement logic to get {{SingularLowerName}} by ID
 	{{SingularLowerName}} := &entity.{{SingularCapitalName}}{}
-	if err := r.app.DB.QueryRow(context.Background(), "SELECT id, name, phone FROM {{SingularLowerName}}s WHERE id = $1", {{SingularLowerName}}ID).Scan(&{{SingularLowerName}}.ID); err != nil {
+	if err := r.app.DB.QueryRow(context.Background(), "SELECT id, name, status FROM {{SingularLowerName}}s WHERE id = $1", {{SingularLowerName}}ID).Scan(&{{SingularLowerName}}.ID, &{{SingularLowerName}}.Name, &{{SingularLowerName}}.Status ); err != nil {
 		return nil, fmt.Errorf("{{SingularLowerName}} not found")
 	}
 	return {{SingularLowerName}}, nil
@@ -109,8 +109,8 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}ByID({
 func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}({{SingularLowerName}}ID uint) (*entity.Response{{SingularCapitalName}}, error) {
 	// Implement logic to get {{SingularLowerName}} by ID
 	res{{SingularCapitalName}} := &entity.Response{{SingularCapitalName}}{}
-	query := "SELECT id, name, phone FROM {{SingularLowerName}}s WHERE id = $1"
-	if err := r.app.DB.QueryRow(context.Background(), query, {{SingularLowerName}}ID).Scan(&res{{SingularCapitalName}}.ID, &res{{SingularCapitalName}}.Name); err != nil {
+	query := "SELECT id, name, status FROM {{SingularLowerName}}s WHERE id = $1"
+	if err := r.app.DB.QueryRow(context.Background(), query, {{SingularLowerName}}ID).Scan(&res{{SingularCapitalName}}.ID, &res{{SingularCapitalName}}.Name, &res{{SingularLowerName}}.Status); err != nil {
 		return nil, fmt.Errorf("{{SingularLowerName}} not found")
 	}
 	return res{{SingularCapitalName}}, nil
@@ -147,6 +147,14 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Create{{SingularCapitalName}}({{
 	}()
 
 	// Create the {{SingularLowerName}} within the transaction
+	_, err = tx.Exec(context.Background(), `
+		INSERT INTO departments (name, status, created_at, updated_at) VALUES ($1, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, department.Name)
+	if err != nil {
+		tx.Rollback(context.Background())
+		return err
+	}
+	
 	_, err = tx.Exec(context.Background(), `
 		INSERT INTO {{SingularLowerName}}s (name) VALUES ($1, $2, $3)
 	`, {{SingularLowerName}}.Name)

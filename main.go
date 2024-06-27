@@ -46,13 +46,14 @@ func showMenu() {
 	for {
 		fmt.Println(colorize(asciiArt, "#00FFFF"))                          // Cyan color for ASCII art
 		fmt.Println(colorize("Select an option:", "#800080"))               // Magenta color for prompt
-		fmt.Println(colorize("1. Create Module", "#0080ff"))                // Green color for option 1
+		fmt.Println(colorize("1. Create Module with run", "#0080ff"))                // Green color for option 1
 		fmt.Println(colorize("2. Create Migration", "#FFFF00"))             // Yellow color for option 2
 		fmt.Println(colorize("3. Create Seeder", "#0000FF"))                // Blue color for option 3
 		fmt.Println(colorize("4. Create Migration with Seeder", "#ccff66")) // Magenta color for option 4
 		fmt.Println(colorize("5. Apply Migrations", "#00FFFF"))             // Cyan color for option 5
 		fmt.Println(colorize("6. Run Seeders", "#0080ff"))                  // Green color for option 6
 		fmt.Println(colorize("7. Run API Docs", "#FFFF00"))                 // Yellow color for option 7
+		fmt.Println(colorize("8. Create Module", "#FFFF00"))                 // Yellow color for option 7
 		fmt.Println(colorize("0. Return to Main Menu", "#FF0000"))          // Red color for return option
 		fmt.Print(colorize("Enter the command number: ", "#006600"))        // Green color for the input prompt
 
@@ -160,6 +161,16 @@ func handleChoice(choice int) {
 		}
 	case 7:
 		Yes()
+		
+	case 8:
+		moduleName := createMenu("Enter module name: ", "Module")
+		args := []string{"create", moduleName}
+		if err := create.Module(nil, args); err != nil {
+			fmt.Println()
+			fmt.Println("\x1b[31mError creating module\x1b[0m")
+			fmt.Println()
+			showMenu()
+		}
 	default:
 		fmt.Println(colorize("Invalid command", "#FF0000")) // Red color for invalid command
 	}

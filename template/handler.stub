@@ -30,7 +30,7 @@ func NewHandler(app *app.App) *Handler {
 // @Success 200 {object} entity.{{SingularCapitalName}}ResponsePagination
 // @Router /{{PluralLowerName}} [get]
 func (h *Handler) Get{{SingularCapitalName}}s(w http.ResponseWriter, r *http.Request) {
-	// Implement GetUsers handler
+	// Implement Get{{SingularCapitalName}}s handler
 	{{PluralLowerName}}, err := h.App.Get{{SingularCapitalName}}s(r)
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch {{PluralLowerName}}")
@@ -51,15 +51,15 @@ func (h *Handler) Get{{SingularCapitalName}}s(w http.ResponseWriter, r *http.Req
 // @Router /{{PluralLowerName}} [post]
 func (h *Handler) Create{{SingularCapitalName}}(w http.ResponseWriter, r *http.Request) {
 	// Implement Create{{SingularCapitalName}} handler
-	var newUser entity.{{SingularCapitalName}}
+	var new{{SingularCapitalName}} entity.{{SingularCapitalName}}
 
-	pareErr := utilQuery.BodyParse(&newUser, w, r, true) // Parse request body and validate it
+	pareErr := utilQuery.BodyParse(&new{{SingularCapitalName}}, w, r, true) // Parse request body and validate it
 	if pareErr != nil {
 		return
 	}
 
 	// Call the Create{{SingularCapitalName}} function to create the role
-	err := h.App.Create{{SingularCapitalName}}(&newUser, r)
+	err := h.App.Create{{SingularCapitalName}}(&new{{SingularCapitalName}}, r)
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
 		return

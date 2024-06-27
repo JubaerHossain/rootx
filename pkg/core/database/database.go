@@ -17,8 +17,7 @@ type PgxDatabaseService struct {
 }
 
 // NewPgxDatabaseService initializes a new database service using pgxpool
-func NewPgxDatabaseService() (*PgxDatabaseService, error) {
-	cfg := config.GlobalConfig
+func NewPgxDatabaseService(cfg *config.Config) (*PgxDatabaseService, error) {
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
 
@@ -27,10 +26,17 @@ func NewPgxDatabaseService() (*PgxDatabaseService, error) {
 		return nil, fmt.Errorf("failed to parse database config: %w", err)
 	}
 
-	config.MaxConnIdleTime = 10 * time.Minute
-	config.MaxConnLifetime = 60 * time.Minute // Set to 1 hour
-	config.MaxConns = 5000                    // Adjust based on your environment
-	config.MinConns = 100                     // Adjust based on your environment
+	fmt.Println("MaxIdleConns:", cfg.DBMaxIdleConns)
+	fmt.Println("MaxConnLifetime:", cfg.DBMaxConnLifetime)
+	fmt.Println("MaxConns:", cfg.MaxConns)
+	fmt.Println("MinConns:", cfg.MinConns)
+
+	config.MaxConnIdleTime = time.Duration(cfg.DBMaxIdleConns) * time.Minute
+	config.MaxConnLifetime = time.Duration(cfg.DBMaxConnLifetime) * time.Minute
+	// config.MaxConnIdleTime = 10 * time.Minute
+	// config.MaxConnLifetime = 60 * time.Minute // Set to 1 hour
+	config.MaxConns = int32(cfg.MaxConns)                  // Adjust based on your environment
+	config.MinConns = int32(cfg.MinConns)                   // Adjust based on your environment
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {

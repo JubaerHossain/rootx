@@ -73,7 +73,7 @@ func StartApp() (*App, error) {
 
 // initDatabase initializes the database
 func initDatabase(cfg *config.Config) (*pgxpool.Pool, error) {
-	dbService, err := database.NewPgxDatabaseService()
+	dbService, err := database.NewPgxDatabaseService(cfg)
 	if err != nil {
 		return nil, err
 	}
