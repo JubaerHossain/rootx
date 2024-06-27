@@ -42,6 +42,16 @@ var Create = &cobra.Command{
 	Args: cobra.MinimumNArgs(2),
 	RunE: Run,
 }
+func hexToRGB(hex string) (int, int, int) {
+	var r, g, b int
+	fmt.Sscanf(hex, "#%02x%02x%02x", &r, &g, &b)
+	return r, g, b
+}
+
+func colorize(text, hex string) string {
+	r, g, b := hexToRGB(hex)
+	return fmt.Sprintf("\x1b[38;2;%d;%d;%dm%s\x1b[0m", r, g, b, text)
+}
 
 func CreateProgressBar(description string) *progressbar.ProgressBar {
 	bar := progressbar.NewOptions64(100,
@@ -104,6 +114,54 @@ func Run(cmd *cobra.Command, args []string) error {
 		fmt.Println(err)
 		return err
 	}
+	return nil
+}
+func Module(cmd *cobra.Command, args []string) error {
+
+	bar := CreateProgressBar("Creating module: ")
+
+	// Perform your tasks here
+	for i := 0; i <= 100; i++ {
+		// Update progress bar
+		bar.Add(1)
+		time.Sleep(100 * time.Millisecond) // Simulate some work being done
+	}
+
+	moduleName, err := getModuleName()
+	if err != nil {
+		return errors.New("module name not found in go.mod")
+	}
+
+	if len(args) < 2 {
+		return errors.New("not enough arguments")
+	}
+	AppName = moduleName
+	name := args[1]
+	name = Lower(Plural(name))
+	fs := afero.NewBasePathFs(afero.NewOsFs(), AppRoot+"/")
+	if err := createFolders(fs, name); err != nil {
+		return err
+	}
+	if err := createFiles(fs, name); err != nil {
+		return err
+	}
+	if err := MigrationWithSeederCreate(nil, args); err != nil {
+		return err
+	}
+	if err := createServerFile("cmd"); err != nil {
+		return fmt.Errorf("error creating server file: %w", err)
+	}
+
+	if err := runCommand("go", "mod", "tidy"); err != nil {
+		return fmt.Errorf("failed to run go mod tidy: %w", err)
+	}
+
+	if err := runCommand("go", "mod", "vendor"); err != nil {
+		return fmt.Errorf("failed to run go mod vendor: %w", err)
+	}
+
+	fmt.Println(colorize("Module created successfully", "#00FF00")) // Green color for success message
+
 	return nil
 }
 
@@ -619,8 +677,11 @@ func gracefulShutdown(server *http.Server, timeout time.Duration) {
 }
 `
 
-	if err := os.WriteFile(filename, []byte(mainContent), 0644); err != nil {
-		return fmt.Errorf("failed to create server file: %w", err)
+	// Check if the main.go file already exists, if not create it
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		if err := os.WriteFile(filename, []byte(mainContent), 0644); err != nil {
+			return fmt.Errorf("failed to create server file: %w", err)
+		}
 	}
 	return nil
 }
@@ -709,7 +770,6 @@ func createEnvFile() error {
 	return nil
 }
 
-
 func loadEnvFile(filename string) (map[string]string, error) {
 	envMap := make(map[string]string)
 
@@ -792,7 +852,7 @@ func DatabaseConfig() error {
 
 func RunApp(cmd *cobra.Command, args []string) error {
 	bar := CreateProgressBar("App Running: ")
-	
+
 	// Load environment variables from existing .env file or create a new one
 	if err := createEnvFile(); err != nil {
 		return fmt.Errorf("error creating .env file: %w", err)
