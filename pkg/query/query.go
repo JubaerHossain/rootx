@@ -33,19 +33,26 @@ func Pagination(req *http.Request, app *app.App, table string) (pagination coreE
 
 	// Extract limit and offset from query parameters
 	queryValues := req.URL.Query()
-	limit := 10 // Default limit
-	offset := 0 // Default offset (starting from 0 for database query)
-
-	if limitStr := queryValues.Get("limit"); limitStr != "" {
-		limit, _ = strconv.Atoi(limitStr)
+	page, _ := strconv.Atoi(queryValues.Get("page"))
+	if page <= 0 {
+		page = 1
 	}
-
-	if offsetStr := queryValues.Get("offset"); offsetStr != "" {
-		offset, _ = strconv.Atoi(offsetStr)
+	limit, _ := strconv.Atoi(queryValues.Get("limit"))
+	if limit <= 0 {
+		limit = 10
 	}
+	offset := (page - 1) * limit // Default offset (starting from 0 for database query)
 
-	// Calculate current page based on offset and limit
-	currentPage := offset/limit + 1
+	var nextPage, previousPage *int
+	if page > 1 {
+		prevPage := page - 1
+		previousPage = &prevPage
+	}
+	// You may need to adjust the condition based on your total items count
+	if offset+limit < totalItems {
+		nextPageValue := page + 1
+		nextPage = &nextPageValue
+	}
 
 	// Calculate total pages
 	totalPages := totalItems / limit
@@ -53,25 +60,13 @@ func Pagination(req *http.Request, app *app.App, table string) (pagination coreE
 		totalPages++
 	}
 
-	// Calculate next and previous pages
-	nextPage := currentPage + 1
-	previousPage := currentPage - 1
-
-	if previousPage < 1 {
-		previousPage = 1
-	}
-
-	if nextPage > totalPages {
-		nextPage = totalPages
-	}
-
 	// Prepare pagination struct
 	return coreEntity.Pagination{
 		TotalItems:   totalItems,
 		TotalPages:   totalPages,
-		CurrentPage:  currentPage,
-		NextPage:     &nextPage,
-		PreviousPage: &previousPage,
+		CurrentPage:  page,
+		NextPage:     nextPage,
+		PreviousPage: previousPage,
 		FirstPage:    1,
 		LastPage:     totalPages,
 	}, limit, offset, nil
