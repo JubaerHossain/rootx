@@ -912,9 +912,9 @@ func RunApiDocs(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to run go mod tidy: %w", err)
 	}
 
-	if err := runCommand("swag", "init", "-g", "./cmd/server/main.go"); err != nil {
+	if err := runCommand("swag", "init", "-g", "./cmd/server/main.go", "-o", "docs"); err != nil {
 		return fmt.Errorf("failed to run swag init: %w", err)
-	}
+	}	
 
 	// Run the server
 	if err := runServer(); err != nil {

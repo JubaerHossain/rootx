@@ -29,9 +29,9 @@ func NewHandler(app *app.App) *Handler {
 // @Produce json
 // @Success 200 {object} entity.{{SingularCapitalName}}ResponsePagination
 // @Router /{{PluralLowerName}} [get]
-func (h *Handler) Get{{SingularCapitalName}}s(w http.ResponseWriter, r *http.Request) {
-	// Implement Get{{SingularCapitalName}}s handler
-	{{PluralLowerName}}, err := h.App.Get{{SingularCapitalName}}s(r)
+func (h *Handler) Get{{PluralCapitalName}}(w http.ResponseWriter, r *http.Request) {
+	// Implement Get{{PluralCapitalName}} handler
+	{{PluralLowerName}}, err := h.App.Get{{PluralCapitalName}}(r)
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch {{PluralLowerName}}")
 		return

@@ -24,9 +24,9 @@ func NewService(app *app.App) *Service {
 	}
 }
 
-func (s *Service) Get{{SingularCapitalName}}s(r *http.Request) (*entity.{{SingularCapitalName}}ResponsePagination, error) {
+func (s *Service) Get{{PluralCapitalName}}(r *http.Request) (*entity.{{SingularCapitalName}}ResponsePagination, error) {
 	// Call repository to get all {{PluralLowerName}}
-	{{PluralLowerName}}, {{SingularLowerName}}Err := s.repo.Get{{SingularCapitalName}}s(r)
+	{{PluralLowerName}}, {{SingularLowerName}}Err := s.repo.Get{{PluralCapitalName}}(r)
 	if {{SingularLowerName}}Err != nil {
 		return nil, {{SingularLowerName}}Err
 	}

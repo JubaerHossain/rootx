@@ -34,7 +34,7 @@ func CacheClear(req *http.Request, cache cache.CacheService) error {
 }
 
 // GetAll{{SingularCapitalName}}s returns all {{SingularLowerName}}s from the database
-func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}s(req *http.Request) (*entity.{{SingularCapitalName}}ResponsePagination, error) {
+func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *http.Request) (*entity.{{SingularCapitalName}}ResponsePagination, error) {
 	// Implement logic to get all {{SingularLowerName}}s
 	ctx := req.Context()
 	cacheKey := fmt.Sprintf("get_all_{{SingularLowerName}}s_%s", req.URL.Query().Encode()) // Encode query parameters
@@ -47,7 +47,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}s(req 
 	}
 
 	{{SingularLowerName}}s := []*entity.Response{{SingularCapitalName}}{}
-	query := "SELECT id, name, status, created_at FROM {{SingularLowerName}}s" // Example SQL query
+	query := "SELECT id, name, status, created_at FROM {{PluralLowerName}}" // Example SQL query
 
 	// Get database connection from pool
 	conn, err := r.app.DB.Acquire(ctx)
@@ -99,7 +99,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}s(req 
 func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}ByID({{SingularLowerName}}ID uint) (*entity.{{SingularCapitalName}}, error) {
 	// Implement logic to get {{SingularLowerName}} by ID
 	{{SingularLowerName}} := &entity.{{SingularCapitalName}}{}
-	if err := r.app.DB.QueryRow(context.Background(), "SELECT id, name, status FROM {{SingularLowerName}}s WHERE id = $1", {{SingularLowerName}}ID).Scan(&{{SingularLowerName}}.ID, &{{SingularLowerName}}.Name, &{{SingularLowerName}}.Status ); err != nil {
+	if err := r.app.DB.QueryRow(context.Background(), "SELECT id, name, status FROM {{PluralLowerName}}s WHERE id = $1", {{SingularLowerName}}ID).Scan(&{{SingularLowerName}}.ID, &{{SingularLowerName}}.Name, &{{SingularLowerName}}.Status ); err != nil {
 		return nil, fmt.Errorf("{{SingularLowerName}} not found")
 	}
 	return {{SingularLowerName}}, nil
@@ -109,8 +109,8 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}ByID({
 func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}({{SingularLowerName}}ID uint) (*entity.Response{{SingularCapitalName}}, error) {
 	// Implement logic to get {{SingularLowerName}} by ID
 	res{{SingularCapitalName}} := &entity.Response{{SingularCapitalName}}{}
-	query := "SELECT id, name, status FROM {{SingularLowerName}}s WHERE id = $1"
-	if err := r.app.DB.QueryRow(context.Background(), query, {{SingularLowerName}}ID).Scan(&res{{SingularCapitalName}}.ID, &res{{SingularCapitalName}}.Name, &res{{SingularLowerName}}.Status); err != nil {
+	query := "SELECT id, name, status FROM {{PluralLowerName}}s WHERE id = $1"
+	if err := r.app.DB.QueryRow(context.Background(), query, {{SingularLowerName}}ID).Scan(&res{{SingularCapitalName}}.ID, &res{{SingularCapitalName}}.Name, &res{{SingularCapitalName}}.Status); err != nil {
 		return nil, fmt.Errorf("{{SingularLowerName}} not found")
 	}
 	return res{{SingularCapitalName}}, nil
@@ -121,7 +121,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}Detail
 	res{{SingularCapitalName}} := &entity.Response{{SingularCapitalName}}{}
 	err := r.app.DB.QueryRow(context.Background(), `
 		SELECT u.id, u.name, u.status
-		FROM {{SingularLowerName}}s u
+		FROM {{PluralLowerName}}s u
 		WHERE u.id = $1
 	`, {{SingularLowerName}}ID).Scan(&res{{SingularCapitalName}}.ID, &res{{SingularCapitalName}}.Name, &res{{SingularCapitalName}}.Status)
 	if err != nil {
@@ -148,15 +148,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Create{{SingularCapitalName}}({{
 
 	// Create the {{SingularLowerName}} within the transaction
 	_, err = tx.Exec(context.Background(), `
-		INSERT INTO departments (name, status, created_at, updated_at) VALUES ($1, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-	`, department.Name)
-	if err != nil {
-		tx.Rollback(context.Background())
-		return err
-	}
-	
-	_, err = tx.Exec(context.Background(), `
-		INSERT INTO {{SingularLowerName}}s (name) VALUES ($1, $2, $3)
+		INSERT INTO {{PluralLowerName}} (name, status, created_at, updated_at) VALUES ($1, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 	`, {{SingularLowerName}}.Name)
 	if err != nil {
 		tx.Rollback(context.Background())
@@ -186,9 +178,9 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Update{{SingularCapitalName}}(ol
 	}()
 
 	query := `
-		UPDATE {{SingularLowerName}}s
-		SET name = $1, phone = $2, role = $3, status = $4
-		WHERE id = $5
+		UPDATE {{PluralLowerName}}s
+		SET name = $1, status = $2
+		WHERE id = $3
 		RETURNING id, name, status
 	`
 	row := tx.QueryRow(context.Background(), query, {{SingularLowerName}}.Name,  {{SingularLowerName}}.Status, old{{SingularCapitalName}}.ID)
@@ -221,7 +213,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Delete{{SingularCapitalName}}({{
 		}
 	}()
 
-	query := "DELETE FROM {{SingularLowerName}}s WHERE id = $1"
+	query := "DELETE FROM {{PluralLowerName}}s WHERE id = $1"
 	if _, err := tx.Exec(context.Background(), query, {{SingularLowerName}}.ID); err != nil {
 		tx.Rollback(context.Background())
 		return err
