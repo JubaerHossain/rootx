@@ -52,12 +52,12 @@ func StartApp() (*App, error) {
 	}
 
 	// Initialize database and cache asynchronously
-	dbPool, err := initDatabase(cfg)
+	dbPool, err := InitDatabase(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	cacheService, err := initCache()
+	cacheService, err := InitCache()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func StartApp() (*App, error) {
 }
 
 // initDatabase initializes the database
-func initDatabase(cfg *config.Config) (*pgxpool.Pool, error) {
+func InitDatabase(cfg *config.Config) (*pgxpool.Pool, error) {
 	dbService, err := database.NewPgxDatabaseService(cfg)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func initDatabase(cfg *config.Config) (*pgxpool.Pool, error) {
 }
 
 // initCache initializes the cache
-func initCache() (cache.CacheService, error) {
+func InitCache() (cache.CacheService, error) {
 	ctx := context.Background()
 	cacheService, err := cache.NewRedisCacheService(ctx)
 	if err != nil {
@@ -131,7 +131,7 @@ func (app *App) StartServer() error {
 		app.Logger.Error("Could not gracefully shutdown server", zap.Error(err))
 	}
 
-	if err := app.closeResources(); err != nil {
+	if err := app.CloseResources(); err != nil {
 		app.Logger.Error("Failed to close resources", zap.Error(err))
 	}
 
@@ -140,7 +140,7 @@ func (app *App) StartServer() error {
 }
 
 // closeResources closes resources like database connections, cache, etc.
-func (app *App) closeResources() error {
+func (app *App) CloseResources() error {
 	if app.Cache != nil {
 		if err := app.Cache.Close(); err != nil {
 			return fmt.Errorf("failed to close cache: %w", err)
