@@ -11,6 +11,7 @@ type Config struct {
 	BuildVersion      string `mapstructure:"VERSION"`
 	AppEnv            string `mapstructure:"APP_ENV"`
 	AppPort           int    `mapstructure:"APP_PORT"`
+	Domain            string `mapstructure:"DOMAIN"`
 	DBType            string `mapstructure:"DB_TYPE"`
 	DBHost            string `mapstructure:"DB_HOST"`
 	DBPort            int    `mapstructure:"DB_PORT"`
@@ -34,6 +35,13 @@ type Config struct {
 	RateLimitDuration string `mapstructure:"RATE_LIMIT_DURATION"`
 	JwtSecretKey      string `mapstructure:"JWT_SECRET_KEY"`
 	JwtExpiration     string `mapstructure:"JWT_EXPIRATION"`
+	StorageDisk       string `mapstructure:"STORAGE_DISK"`
+	StoragePath       string `mapstructure:"STORAGE_PATH"`
+	AwsRegion         string `mapstructure:"AWS_REGION"`
+	AwsAccessKey      string `mapstructure:"AWS_ACCESS_KEY"`
+	AwsSecretKey      string `mapstructure:"AWS_SECRET_KEY"`
+	AwsBucket         string `mapstructure:"AWS_BUCKET"`
+	AwsEndpoint       string `mapstructure:"AWS_ENDPOINT"`
 }
 
 var (

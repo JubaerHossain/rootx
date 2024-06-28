@@ -130,7 +130,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *ht
 func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}ByID({{SingularLowerName}}ID uint) (*entity.{{SingularCapitalName}}, error) {
 	// Implement logic to get {{SingularLowerName}} by ID
 	{{SingularLowerName}} := &entity.{{SingularCapitalName}}{}
-	if err := r.app.DB.QueryRow(context.Background(), "SELECT id, name, status FROM {{PluralLowerName}}s WHERE id = $1", {{SingularLowerName}}ID).Scan(&{{SingularLowerName}}.ID, &{{SingularLowerName}}.Name, &{{SingularLowerName}}.Status ); err != nil {
+	if err := r.app.DB.QueryRow(context.Background(), "SELECT id, name, status FROM {{PluralLowerName}} WHERE id = $1", {{SingularLowerName}}ID).Scan(&{{SingularLowerName}}.ID, &{{SingularLowerName}}.Name, &{{SingularLowerName}}.Status ); err != nil {
 		return nil, fmt.Errorf("{{SingularLowerName}} not found")
 	}
 	return {{SingularLowerName}}, nil
@@ -140,7 +140,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}ByID({
 func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}({{SingularLowerName}}ID uint) (*entity.Response{{SingularCapitalName}}, error) {
 	// Implement logic to get {{SingularLowerName}} by ID
 	res{{SingularCapitalName}} := &entity.Response{{SingularCapitalName}}{}
-	query := "SELECT id, name, status FROM {{PluralLowerName}}s WHERE id = $1"
+	query := "SELECT id, name, status FROM {{PluralLowerName}} WHERE id = $1"
 	if err := r.app.DB.QueryRow(context.Background(), query, {{SingularLowerName}}ID).Scan(&res{{SingularCapitalName}}.ID, &res{{SingularCapitalName}}.Name, &res{{SingularCapitalName}}.Status); err != nil {
 		return nil, fmt.Errorf("{{SingularLowerName}} not found")
 	}
@@ -152,7 +152,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{SingularCapitalName}}Detail
 	res{{SingularCapitalName}} := &entity.Response{{SingularCapitalName}}{}
 	err := r.app.DB.QueryRow(context.Background(), `
 		SELECT u.id, u.name, u.status
-		FROM {{PluralLowerName}}s u
+		FROM {{PluralLowerName}} u
 		WHERE u.id = $1
 	`, {{SingularLowerName}}ID).Scan(&res{{SingularCapitalName}}.ID, &res{{SingularCapitalName}}.Name, &res{{SingularCapitalName}}.Status)
 	if err != nil {
@@ -209,7 +209,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Update{{SingularCapitalName}}(ol
 	}()
 
 	query := `
-		UPDATE {{PluralLowerName}}s
+		UPDATE {{PluralLowerName}}
 		SET name = $1, status = $2
 		WHERE id = $3
 		RETURNING id, name, status
@@ -244,7 +244,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Delete{{SingularCapitalName}}({{
 		}
 	}()
 
-	query := "DELETE FROM {{PluralLowerName}}s WHERE id = $1"
+	query := "DELETE FROM {{PluralLowerName}} WHERE id = $1"
 	if _, err := tx.Exec(context.Background(), query, {{SingularLowerName}}.ID); err != nil {
 		tx.Rollback(context.Background())
 		return err

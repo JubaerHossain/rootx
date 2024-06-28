@@ -631,6 +631,9 @@ func setupRoutes(application *app.App) http.Handler {
 	// Register monitoring endpoint
 	mux.Handle("/metrics", monitor.MetricsHandler())
 
+	// Register file uploads route
+	mux.Handle("/uploads/", http.StripPrefix("/uploads", http.FileServer(http.Dir("storage"))))
+
 	// Add security headers
 	mux.Handle("/", middleware.LimiterMiddleware(middleware.LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONResponse(w, http.StatusOK, map[string]interface{}{"message": "Welcome to the API"})
@@ -718,6 +721,7 @@ func createEnvFile() error {
 		APP_ENV=development
 		VERSION=1.0.0
 		APP_PORT=9008
+		DOMAIN=http://localhost:9008
 
 		# Database settings
 		DB_TYPE="postgres"
@@ -751,6 +755,14 @@ func createEnvFile() error {
 		# JWT settings
 		JWT_SECRET_KEY=secret
 		JWT_EXPIRATION="1h"
+
+		STORAGE_DISK=local
+		STORAGE_PATH=storage
+		AWS_ACCESS_KEY=
+		AWS_SECRET_KEY=
+		AWS_REGION=ap-southeast-1
+		AWS_BUCKET=aws-bucket
+		AWS_ENDPOINT=https://s3.ap-southeast-1.amazonaws.com
 		`
 
 	// Open or create the .env file

@@ -13,6 +13,7 @@ import (
 	"github.com/JubaerHossain/rootx/pkg/core/cache"
 	"github.com/JubaerHossain/rootx/pkg/core/config"
 	"github.com/JubaerHossain/rootx/pkg/core/database"
+	"github.com/JubaerHossain/rootx/pkg/core/filesystem"
 	"github.com/JubaerHossain/rootx/pkg/core/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -28,6 +29,7 @@ type App struct {
 	Cache        cache.CacheService
 	DB           *pgxpool.Pool
 	Logger       *zap.Logger
+	FileUpload   *filesystem.FileUploadService
 }
 
 // NewApp creates a new instance of the App struct
@@ -59,6 +61,7 @@ func StartApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	fileUploadService := filesystem.NewFileUploadService(cfg)
 	app := &App{
 		Config:       cfg,
 		HttpPort:     cfg.AppPort,
@@ -66,6 +69,7 @@ func StartApp() (*App, error) {
 		Cache:        cacheService,
 		DB:           dbPool,
 		Logger:       logger.Logger,
+		FileUpload:   fileUploadService,
 	}
 
 	return app, nil
