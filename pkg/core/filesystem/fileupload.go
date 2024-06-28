@@ -25,7 +25,7 @@ func NewFileUploadService(cfg *config.Config) *FileUploadService {
 	return &FileUploadService{Config: cfg}
 }
 
-func FileUpload(r *http.Request, formKey string, cfg *config.Config, folder string) (string, error) {
+func (s *FileUploadService) FileUpload(r *http.Request, formKey string, folder string) (string, error) {
 	file, handler, err := r.FormFile(formKey)
 	if err != nil {
 		return "", err
@@ -34,19 +34,19 @@ func FileUpload(r *http.Request, formKey string, cfg *config.Config, folder stri
 
 	// Determine storage destination based on app config
 	var filePath string
-	switch cfg.StorageDisk {
+	switch s.Config.StorageDisk {
 	case "s3":
 		filePath = folder + "/" + handler.Filename
-		return uploadToS3(file, cfg, filePath)
+		return s.uploadToS3(file, s.Config, filePath)
 	case "local":
-		return saveToLocal(file, cfg, folder, handler.Filename)
+		return s.saveToLocal(file, s.Config, folder, handler.Filename)
 	default:
 		return "", errors.New("storage disk not supported")
 	}
 }
 
 // uploadToS3 uploads file to AWS S3
-func uploadToS3(file multipart.File, cfg *config.Config, filePath string) (string, error) {
+func (s *FileUploadService) uploadToS3(file multipart.File, cfg *config.Config, filePath string) (string, error) {
 	// Initialize AWS session
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(cfg.AwsRegion),
@@ -83,7 +83,7 @@ func uploadToS3(file multipart.File, cfg *config.Config, filePath string) (strin
 }
 
 // saveToLocal saves file to local disk
-func saveToLocal(file multipart.File, cfg *config.Config, folder string, filename string) (string, error) {
+func (s *FileUploadService) saveToLocal(file multipart.File, cfg *config.Config, folder string, filename string) (string, error) {
 	// Define the root directory path
 	rootDir := cfg.StoragePath
 
@@ -113,7 +113,7 @@ func saveToLocal(file multipart.File, cfg *config.Config, folder string, filenam
 }
 
 // DeleteFromS3 deletes file from AWS S3
-func DeleteFromS3(filePath string, cfg *config.Config) error {
+func (s *FileUploadService) DeleteFromS3(filePath string, cfg *config.Config) error {
 	// Initialize AWS session
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(cfg.AwsRegion),
@@ -139,13 +139,13 @@ func DeleteFromS3(filePath string, cfg *config.Config) error {
 }
 
 // Example usage to delete an image (assuming you have the filePath stored)
-func DeleteImage(filePath string, cfg *config.Config) error {
+func (s *FileUploadService) DeleteImage(filePath string) error {
 	var err error
-	switch cfg.StorageDisk {
+	switch s.Config.StorageDisk {
 	case "s3":
-		err = DeleteFromS3(filePath, cfg)
+		err = s.DeleteFromS3(filePath, s.Config)
 	case "local":
-		err = DeleteFromLocal(filePath)
+		err = s.DeleteFromLocal(filePath)
 	default:
 		err = errors.New("storage disk not supported")
 	}
@@ -153,7 +153,7 @@ func DeleteImage(filePath string, cfg *config.Config) error {
 }
 
 // DeleteFromLocal deletes file from local disk
-func DeleteFromLocal(filePath string) error {
+func (s *FileUploadService) DeleteFromLocal(filePath string) error {
 	err := os.Remove(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to delete file from local disk: %v", err)
