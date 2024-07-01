@@ -49,7 +49,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *ht
 	}
 
 	
-	query := "SELECT id, name, status, created_at FROM {{PluralLowerName}}" // Example SQL query
+	baseQuery := "SELECT id, name, status, created_at FROM {{PluralLowerName}}" // Example SQL query
 
 	// Apply filters from query parameters
 	queryValues := req.URL.Query()
@@ -71,13 +71,14 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *ht
 	}
 
 	// Pagination and limits
-	pagination, limit, offset, err := utilQuery.Pagination(req, r.app, "{{PluralLowerName}}")
+	pagination, limit, offset, err := utilQuery.Paginate(req, r.app, baseQuery, filterQuery)
 	if err != nil {
 		return nil, fmt.Errorf("pagination error: %w", err)
 	}
 
 	// Apply pagination to query
 	query += fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
+	query := baseQuery + filterQuery + fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
 
 	// Get database connection from pool
 	conn, err := r.app.DB.Acquire(ctx)
