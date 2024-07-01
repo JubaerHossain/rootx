@@ -66,8 +66,15 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *ht
 	}
 
 	// Apply filters to query
+	filterQuery := ""
 	if len(filters) > 0 {
-		query += " WHERE " + strings.Join(filters, " AND ")
+		filterQuery = " WHERE " + strings.Join(filters, " AND ")
+	}
+
+	// sort by
+	sortBy := " ORDER BY bf.id DESC"
+	if sort := queryValues.Get("sort"); sort != "" {
+		sortBy = fmt.Sprintf(" ORDER BY bf.id %s", sort)
 	}
 
 	// Pagination and limits
@@ -77,8 +84,7 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *ht
 	}
 
 	// Apply pagination to query
-	query += fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
-	query := baseQuery + filterQuery + fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
+	query := fmt.Sprintf("%s%s%s LIMIT %d OFFSET %d", baseQuery, filterQuery, sortBy, limit, offset)
 
 	// Get database connection from pool
 	conn, err := r.app.DB.Acquire(ctx)
