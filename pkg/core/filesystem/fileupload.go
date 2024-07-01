@@ -11,11 +11,23 @@ import (
 	"path/filepath"
 
 	"github.com/JubaerHossain/rootx/pkg/core/config"
+	
+	rootUtils "github.com/JubaerHossain/rootx/pkg/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
+
+type FileMetadata struct {
+	Name         string
+	OriginalName string
+	RootPath     string
+	Extension    string
+	Path         string
+	Type         string
+	URL          string
+}
 
 type FileUploadService struct {
 	Config *config.Config
@@ -25,35 +37,50 @@ func NewFileUploadService(cfg *config.Config) *FileUploadService {
 	return &FileUploadService{Config: cfg}
 }
 
-func (s *FileUploadService) FileUpload(r *http.Request, formKey string, folder string) (string, error) {
+func (s *FileUploadService) FileUpload(r *http.Request, formKey string, folder string) (*FileMetadata, error) {
 	file, handler, err := r.FormFile(formKey)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer file.Close()
 
+	// Generate a unique file name
+	uniqueFileName := s.generateUniqueFileName(handler.Filename)
+
 	// Determine storage destination based on app config
-	var filePath string
 	switch s.Config.StorageDisk {
 	case "s3":
-		filePath = folder + "/" + handler.Filename
-		return s.uploadToS3(file, s.Config, filePath)
+		filePath := folder + "/" + uniqueFileName
+		return s.uploadToS3(file, s.Config, filePath, handler.Filename)
 	case "local":
-		return s.saveToLocal(file, s.Config, folder, handler.Filename)
+		return s.saveToLocal(file, s.Config, folder, uniqueFileName)
 	default:
-		return "", errors.New("storage disk not supported")
+		return nil, errors.New("storage disk not supported")
 	}
 }
 
-// uploadToS3 uploads file to AWS S3
-func (s *FileUploadService) uploadToS3(file multipart.File, cfg *config.Config, filePath string) (string, error) {
+func (s *FileUploadService) generateUniqueFileName(originalName string) string {
+	// Generate a timestamp
+	
+	// Extract the file extension
+	ext := filepath.Ext(originalName)
+	name := originalName[:len(originalName)-len(ext)]
+
+	// Create a new file name by appending the unique before the extension
+	newFileName := fmt.Sprintf("%s_%s%s", name, rootUtils.GenerateUniqueNumber(8), ext)
+
+	return newFileName
+}
+
+// uploadToS3 uploads file to AWS S3 and returns file metadata
+func (s *FileUploadService) uploadToS3(file multipart.File, cfg *config.Config, filePath string, originalName string) (*FileMetadata, error) {
 	// Initialize AWS session
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(cfg.AwsRegion),
 		Credentials: credentials.NewStaticCredentials(cfg.AwsAccessKey, cfg.AwsSecretKey, ""),
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to create AWS session: %v", err)
+		return nil, fmt.Errorf("failed to create AWS session: %v", err)
 	}
 
 	// Create S3 service client
@@ -62,7 +89,7 @@ func (s *FileUploadService) uploadToS3(file multipart.File, cfg *config.Config, 
 	// Read file content
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		return "", fmt.Errorf("failed to read file content: %v", err)
+		return nil, fmt.Errorf("failed to read file content: %v", err)
 	}
 
 	// Upload file to S3 bucket
@@ -74,16 +101,27 @@ func (s *FileUploadService) uploadToS3(file multipart.File, cfg *config.Config, 
 		ACL:         aws.String("public-read"),
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to upload file to S3: %v", err)
+		return nil, fmt.Errorf("failed to upload file to S3: %v", err)
 	}
 
 	// Construct public URL for the uploaded file
 	fileURL := fmt.Sprintf("%s/%s/%s", cfg.AwsEndpoint, cfg.AwsBucket, filePath)
-	return fileURL, nil
+
+	// Return file metadata
+	metadata := &FileMetadata{
+		Name:         filepath.Base(filePath),
+		OriginalName: originalName,
+		RootPath:     cfg.AwsBucket,
+		Extension:    filepath.Ext(filePath),
+		Path:         filePath,
+		Type:         http.DetectContentType(fileBytes),
+		URL:          fileURL,
+	}
+	return metadata, nil
 }
 
-// saveToLocal saves file to local disk
-func (s *FileUploadService) saveToLocal(file multipart.File, cfg *config.Config, folder string, filename string) (string, error) {
+// saveToLocal saves file to local disk and returns file metadata
+func (s *FileUploadService) saveToLocal(file multipart.File, cfg *config.Config, folder string, filename string) (*FileMetadata, error) {
 	// Define the root directory path
 	rootDir := cfg.StoragePath
 
@@ -93,23 +131,32 @@ func (s *FileUploadService) saveToLocal(file multipart.File, cfg *config.Config,
 	// Ensure the directory exists
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return "", fmt.Errorf("failed to create directories: %v", err)
+		return nil, fmt.Errorf("failed to create directories: %v", err)
 	}
 
 	// Read file content
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		return "", fmt.Errorf("failed to read file content: %v", err)
+		return nil, fmt.Errorf("failed to read file content: %v", err)
 	}
 
 	// Write file to local disk
 	if err := os.WriteFile(filePath, fileBytes, 0644); err != nil {
-		return "", fmt.Errorf("failed to save file to local disk: %v", err)
+		return nil, fmt.Errorf("failed to save file to local disk: %v", err)
 	}
 
-	// Return local file path with domain
+	// Return file metadata
 	fileURL := fmt.Sprintf("%s/uploads/%s/%s", cfg.Domain, folder, filename)
-	return fileURL, nil
+	metadata := &FileMetadata{
+		Name:         filename,
+		OriginalName: filename,
+		RootPath:     rootDir,
+		Extension:    filepath.Ext(filename),
+		Path:         filePath,
+		Type:         http.DetectContentType(fileBytes),
+		URL:          fileURL,
+	}
+	return metadata, nil
 }
 
 // DeleteFromS3 deletes file from AWS S3
