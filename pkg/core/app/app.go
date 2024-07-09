@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/JubaerHossain/rootx/pkg/core/database"
 	"github.com/JubaerHossain/rootx/pkg/core/filesystem"
 	"github.com/JubaerHossain/rootx/pkg/core/logger"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -28,6 +30,7 @@ type App struct {
 	PublicFS     fs.FS
 	Cache        cache.CacheService
 	DB           *pgxpool.Pool
+	MDB          *sql.DB
 	Logger       *zap.Logger
 	FileUpload   *filesystem.FileUploadService
 }
@@ -52,10 +55,27 @@ func StartApp() (*App, error) {
 	}
 
 	// Initialize database and cache asynchronously
-	dbPool, err := InitDatabase(cfg)
-	if err != nil {
-		return nil, err
+
+
+	var pgDB *pgxpool.Pool
+	var mySQLDB *sql.DB
+
+	if cfg.DBType == "postgres" {
+		db, err := InitPqDatabase(cfg)
+		if err != nil {
+			return nil, err
+		}
+		pgDB = db
+
+	} else if cfg.DBType == "mysql" {
+		mdb, err := InitMySQLDatabase(cfg)
+		if err != nil {
+			return nil, err
+		}
+		mySQLDB = mdb
 	}
+
+
 
 	cacheService, err := InitCache()
 	if err != nil {
@@ -67,7 +87,8 @@ func StartApp() (*App, error) {
 		HttpPort:     cfg.AppPort,
 		BuildVersion: cfg.BuildVersion,
 		Cache:        cacheService,
-		DB:           dbPool,
+		DB:           pgDB,
+		MDB:          mySQLDB,
 		Logger:       logger.Logger,
 		FileUpload:   fileUploadService,
 	}
@@ -76,27 +97,22 @@ func StartApp() (*App, error) {
 }
 
 // initDatabase initializes the database
-func InitDatabase(cfg *config.Config) (*pgxpool.Pool, error) {
+func InitPqDatabase(cfg *config.Config) (*pgxpool.Pool, error) {
 	dbService, err := database.NewPgxDatabaseService(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	if cfg.Migrate {
-		if err := dbService.Migrate(); err != nil {
-			logger.Logger.Error("Failed to migrate database", zap.Error(err))
-			return nil, err
-		}
+	return dbService.GetDB(), nil
+}
+
+func InitMySQLDatabase(cfg *config.Config) (*sql.DB, error) {
+	dbService, err := database.NewMySQLService(cfg)
+	if err != nil {
+		return nil, err
 	}
 
-	if cfg.Seed {
-		if err := dbService.Seed(); err != nil {
-			logger.Logger.Error("Failed to seed database", zap.Error(err))
-			return nil, err
-		}
-	}
-
-	return dbService.GetPool(), nil
+	return dbService.GetDB(), nil
 }
 
 // initCache initializes the cache
