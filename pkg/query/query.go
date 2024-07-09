@@ -74,9 +74,15 @@ func Paginate(req *http.Request, app *app.App, baseQuery, filterQuery string) (c
 
 	// Count total items with filters applied
 	var totalItems int
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM (%s%s) AS filtered", baseQuery, filterQuery)
-	if err := app.DB.QueryRow(ctx, countQuery).Scan(&totalItems); err != nil {
-		return coreEntity.Pagination{}, 0, 0, err
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM (%s%s) AS filtered", baseQuery, filterQuery)	
+	if app.Config.DBType == "mysql" {
+		if err := app.MDB.QueryRowContext(ctx, countQuery).Scan(&totalItems); err != nil {
+			return coreEntity.Pagination{}, 0, 0, err
+		}
+	} else {
+		if err := app.DB.QueryRow(ctx, countQuery).Scan(&totalItems); err != nil {
+			return coreEntity.Pagination{}, 0, 0, err
+		}
 	}
 
 	// Extract limit and offset from query parameters
