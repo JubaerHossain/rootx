@@ -27,6 +27,7 @@ const (
 	AppRoot = "domain"
 
 	TemplateDir = "../../template"
+	AuthTemplateDir = "../../template/auths"
 
 	ServiceDir     = "service"
 	EntityDir      = "entity"
@@ -116,6 +117,65 @@ func Run(cmd *cobra.Command, args []string) error {
 	}
 	return nil
 }
+func ModuleWithMS(cmd *cobra.Command, args []string) error {
+
+	bar := CreateProgressBar("Creating module: ")
+
+	// Perform your tasks here
+	for i := 0; i <= 100; i++ {
+		// Update progress bar
+		bar.Add(1)
+		time.Sleep(100 * time.Millisecond) // Simulate some work being done
+	}
+
+	moduleName, err := getModuleName()
+	if err != nil {
+		return errors.New("module name not found in go.mod")
+	}
+
+	if len(args) < 2 {
+		return errors.New("not enough arguments")
+	}
+	AppName = moduleName
+	name := args[1]
+	name = Lower(Plural(name))
+
+	fss := afero.NewOsFs()
+	userModulePath := AppRoot + "/" + name // Adjust this path as needed
+	exist, err := afero.DirExists(fss, userModulePath)
+	if err != nil {
+		return fmt.Errorf("error checking user module existence: %w", err)
+	}
+	if exist {
+		return fmt.Errorf("module %s already exists", name)
+	}
+
+	fs := afero.NewBasePathFs(afero.NewOsFs(), AppRoot+"/")
+	if err := createFolders(fs, name); err != nil {
+		return err
+	}
+	if err := createFiles(fs, name); err != nil {
+		return err
+	}
+	if err := MigrationWithSeederCreate(nil, args); err != nil {
+		return err
+	}
+	if err := createServerFile("cmd"); err != nil {
+		return fmt.Errorf("error creating server file: %w", err)
+	}
+
+	if err := runCommand("go", "mod", "tidy"); err != nil {
+		return fmt.Errorf("failed to run go mod tidy: %w", err)
+	}
+
+	if err := runCommand("go", "mod", "vendor"); err != nil {
+		return fmt.Errorf("failed to run go mod vendor: %w", err)
+	}
+
+	fmt.Println(colorize("Module created successfully", "#00FF00")) // Green color for success message
+
+	return nil
+}
 func Module(cmd *cobra.Command, args []string) error {
 
 	bar := CreateProgressBar("Creating module: ")
@@ -138,14 +198,22 @@ func Module(cmd *cobra.Command, args []string) error {
 	AppName = moduleName
 	name := args[1]
 	name = Lower(Plural(name))
+
+	fss := afero.NewOsFs()
+	userModulePath := AppRoot + "/" + name // Adjust this path as needed
+	exist, err := afero.DirExists(fss, userModulePath)
+	if err != nil {
+		return fmt.Errorf("error checking user module existence: %w", err)
+	}
+	if exist {
+		return fmt.Errorf("module %s already exists", name)
+	}
+
 	fs := afero.NewBasePathFs(afero.NewOsFs(), AppRoot+"/")
 	if err := createFolders(fs, name); err != nil {
 		return err
 	}
 	if err := createFiles(fs, name); err != nil {
-		return err
-	}
-	if err := MigrationWithSeederCreate(nil, args); err != nil {
 		return err
 	}
 	if err := createServerFile("cmd"); err != nil {
@@ -154,10 +222,6 @@ func Module(cmd *cobra.Command, args []string) error {
 
 	if err := runCommand("go", "mod", "tidy"); err != nil {
 		return fmt.Errorf("failed to run go mod tidy: %w", err)
-	}
-
-	if err := runCommand("go", "mod", "vendor"); err != nil {
-		return fmt.Errorf("failed to run go mod vendor: %w", err)
 	}
 
 	fmt.Println(colorize("Module created successfully", "#00FF00")) // Green color for success message
@@ -460,6 +524,67 @@ func ApplyMigrations(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func createAuthFiles(fs afero.Fs, name string) error {
+	createFile(fs, name, path.Join(AuthTemplateDir, "service.stub"), path.Join(name, ServiceDir, name+".go"))
+	createFile(fs, name, path.Join(AuthTemplateDir, "entity.stub"), path.Join(name, EntityDir, name+".go"))
+	createFile(fs, name, path.Join(AuthTemplateDir, "repository.stub"), path.Join(name, RepositoryDir, name+".go"))
+	createFile(fs, name, path.Join(AuthTemplateDir, "persistence.stub"), path.Join(name, PersistenceDir, name+".go"))
+	createFile(fs, name, path.Join(AuthTemplateDir, "handler.stub"), path.Join(name, http, "handler.go"))
+	createFile(fs, name, path.Join(AuthTemplateDir, "route.stub"), path.Join(name, http, "route.go"))
+
+	return nil
+}
+
+func ScaffoldApp(cmd *cobra.Command, arg []string) error {
+
+	fss := afero.NewOsFs()
+	userModulePath := AppRoot + "/users" // Adjust this path as needed
+	exists, err := afero.DirExists(fss, userModulePath)
+	if err != nil {
+		return fmt.Errorf("error checking user module existence: %w", err)
+	}
+
+	// Create user module if it does not exist
+	if !exists {
+		fmt.Println("User module does not exist. Creating user module...")
+		args := []string{"create", "user"}
+		if err := Module(nil, args); err != nil {
+			fmt.Println()
+			fmt.Println("\x1b[31mError creating module\x1b[0m")
+			fmt.Println()
+		}
+	}
+
+	name := "auth"
+	name = Lower(Plural(name))
+
+	moduleName, err := getModuleName()
+	if err != nil {
+		return errors.New("module name not found in go.mod")
+	}
+	AppName = moduleName
+    
+	fs := afero.NewBasePathFs(afero.NewOsFs(), AppRoot+"/")
+	if err := createFolders(fs, name); err != nil {
+		return err
+	}
+	if err := createAuthFiles(fs, name); err != nil {
+		return err
+	}
+
+	bar := CreateProgressBar("Scaffolding: ")
+	// Perform your tasks here
+	for i := 0; i <= 100; i++ {
+		// Update progress bar
+		bar.Add(1)
+		time.Sleep(100 * time.Millisecond) // Simulate some work being done
+	}
+
+	fmt.Println(colorize("Scaffold created successfully", "#00FF00")) // Green color for success message
+
+	return nil
+}
+
 func RunSeeders(cmd *cobra.Command, args []string) error {
 	bar := CreateProgressBar("Seeding: ")
 	// Perform your tasks here
@@ -554,11 +679,15 @@ import (
 	"github.com/JubaerHossain/rootx/pkg/utils"
 )
 
-// @title           Golang Starter API
+// @title           RootX API
 // @version         1.0
-// @description     This is a starter API for Golang projects
-// @host            localhost:3021
-// @BasePath        /api
+// @description     This is a RESTful API service for RootX
+// @host            localhost:9008
+// @BasePath        /api/v1
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 
 func main() {
 	// Initialize the application

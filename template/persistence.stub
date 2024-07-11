@@ -72,9 +72,9 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Get{{PluralCapitalName}}(req *ht
 	}
 
 	// sort by
-	sortBy := " ORDER BY bf.id DESC"
+	sortBy := " ORDER BY id DESC"
 	if sort := queryValues.Get("sort"); sort != "" {
-		sortBy = fmt.Sprintf(" ORDER BY bf.id %s", sort)
+		sortBy = fmt.Sprintf(" ORDER BY id %s", sort)
 	}
 
 	// Pagination and limits

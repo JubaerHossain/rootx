@@ -1,0 +1,25 @@
+package entity
+
+import (
+	"github.com/JubaerHossain/rootx/pkg/core/entity"
+)
+
+type LoginUser struct {
+	Email    string `json:"email" validate:"required,min=11,max=80" default:"admin@gmail.com"`
+	Password string `json:"password" validate:"required,min=6,max=20" default:"password"`
+}
+
+type RefreshToken struct {
+	RefreshToken string `json:"refresh_token" validate:"required" default:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjA3NzE1ODEsInN1YiI6MX0.m_xu3eWipnN0XK9Z1qB7io_hT8kV5Eb4aQkkx0qmSvQ"`
+}
+
+type LoginUserResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+type AuthUser struct {
+	ID    uint        `json:"id"`
+	Name  string      `json:"name"`
+	Email string      `json:"email"`
+	Role  entity.Role `json:"role"`
+}

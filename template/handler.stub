@@ -27,6 +27,7 @@ func NewHandler(app *app.App) *Handler {
 // @Tags {{PluralLowerName}}
 // @Accept json
 // @Produce json
+// @Security ApiKeyAuth
 // @Success 200 {object} entity.{{SingularCapitalName}}ResponsePagination
 // @Router /{{PluralLowerName}} [get]
 func (h *Handler) Get{{PluralCapitalName}}(w http.ResponseWriter, r *http.Request) {
@@ -47,6 +48,8 @@ func (h *Handler) Get{{PluralCapitalName}}(w http.ResponseWriter, r *http.Reques
 // @Tags {{PluralLowerName}}
 // @Accept json
 // @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} map[string]interface{} "{{SingularCapitalName}} created successfully"
 // @Param {{SingularLowerName}} body entity.{{SingularCapitalName}} true "The {{SingularCapitalName}} to be created"
 // @Router /{{PluralLowerName}} [post]
 func (h *Handler) Create{{SingularCapitalName}}(w http.ResponseWriter, r *http.Request) {
@@ -91,6 +94,8 @@ func (h *Handler) Get{{SingularCapitalName}}ByID(w http.ResponseWriter, r *http.
 // @Tags {{PluralLowerName}}
 // @Accept json
 // @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} entity.Response{{SingularCapitalName}}
 // @Param id path string true "The ID of the {{SingularCapitalName}}"
 // @Router /{{PluralLowerName}}/{id}/details [get]
 func (h *Handler) Get{{SingularCapitalName}}Details(w http.ResponseWriter, r *http.Request) {
@@ -112,6 +117,8 @@ func (h *Handler) Get{{SingularCapitalName}}Details(w http.ResponseWriter, r *ht
 // @Tags {{PluralLowerName}}
 // @Accept json
 // @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} map[string]interface{} "{{SingularCapitalName}} updated successfully"
 // @Param id path string true "The ID of the {{SingularCapitalName}}"
 // @Param {{SingularLowerName}} body entity.Update{{SingularCapitalName}} true "Updated {{SingularCapitalName}} object"
 // @Router /{{PluralLowerName}}/{id} [put]
@@ -141,6 +148,8 @@ func (h *Handler) Update{{SingularCapitalName}}(w http.ResponseWriter, r *http.R
 // @Tags {{PluralLowerName}}
 // @Accept json
 // @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} map[string]interface{} "{{SingularCapitalName}} deleted successfully"
 // @Param id path string true "The ID of the {{SingularCapitalName}}"
 // @Router /{{PluralLowerName}}/{id} [delete]
 func (h *Handler) Delete{{SingularCapitalName}}(w http.ResponseWriter, r *http.Request) {

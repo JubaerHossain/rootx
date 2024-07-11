@@ -1,0 +1,76 @@
+package persistence
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"{{AppName}}/domain/auths/entity"
+	"{{AppName}}/domain/auths/repository"
+	userEntity "{{AppName}}/domain/users/entity"
+	"github.com/JubaerHossain/rootx/pkg/auth"
+	"github.com/JubaerHossain/rootx/pkg/core/app"
+	utilQuery "github.com/JubaerHossain/rootx/pkg/query"
+)
+
+type AuthRepositoryImpl struct {
+	app *app.App
+}
+
+// NewAuthRepository returns a new instance of AuthRepositoryImpl
+func NewAuthRepository(app *app.App) repository.AuthRepository {
+	return &AuthRepositoryImpl{
+		app: app,
+	}
+}
+
+
+// GetSignIn returns a new auth
+func (r *AuthRepositoryImpl) GetSignIn(req *http.Request, loginUser *entity.LoginUser) (*entity.LoginUserResponse, error) {
+	user := &userEntity.User{}
+	if err := r.app.DB.QueryRow(context.Background(), "SELECT id FROM users WHERE email = $1", loginUser.Email).Scan(&user.ID); err != nil {
+		return &entity.LoginUserResponse{}, fmt.Errorf("user not found")
+	}
+
+	password := "password" // get password from database
+	if err := utilQuery.ComparePassword(password, loginUser.Password); err != nil {
+		return nil, fmt.Errorf("invalid password")
+	}
+
+	accessToken, refreshToken, err := auth.CreateTokens(user.ID, "role", r.app, 24) // Call the CreateTokens function  here role mean user role you can set dynamic
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the response
+	return &entity.LoginUserResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+// GetRefreshToken returns a new auth
+func (r *AuthRepositoryImpl) GetRefreshToken(req *http.Request, reqRefreshToken *entity.RefreshToken) (*entity.LoginUserResponse, error) {
+	// Implement logic to get refresh-token
+	claims, err := auth.ValidateToken(reqRefreshToken.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	userID := claims["sub"].(float64)
+	user := &userEntity.User{}
+	if err := r.app.DB.QueryRow(context.Background(), "SELECT id FROM users WHERE id = $1", userID).Scan(&user.ID); err != nil {
+		return &entity.LoginUserResponse{}, fmt.Errorf("user not found")
+	}
+
+	accessToken, refreshToken, err := auth.CreateTokens(user.ID, "", r.app, 24) // Call the CreateTokens function
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the response
+	return &entity.LoginUserResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}

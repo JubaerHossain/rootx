@@ -47,13 +47,15 @@ func showMenu() {
 		fmt.Println(colorize(asciiArt, "#00FFFF"))                          // Cyan color for ASCII art
 		fmt.Println(colorize("Select an option:", "#800080"))               // Magenta color for prompt
 		fmt.Println(colorize("1. Create Module", "#FFFF00"))                 // Yellow color for option 7
-		fmt.Println(colorize("2. Create Module with run", "#0080ff"))                // Green color for option 1
-		fmt.Println(colorize("3. Create Migration", "#FFFF00"))             // Yellow color for option 2
-		fmt.Println(colorize("4. Create Seeder", "#0000FF"))                // Blue color for option 3
-		fmt.Println(colorize("5. Create Migration with Seeder", "#ccff66")) // Magenta color for option 4
-		fmt.Println(colorize("6. Apply Migrations", "#00FFFF"))             // Cyan color for option 5
-		fmt.Println(colorize("7. Run Seeders", "#0080ff"))                  // Green color for option 6
-		fmt.Println(colorize("8. Run API Docs", "#FFFF00"))                 // Yellow color for option 7
+		fmt.Println(colorize("2. Create Module with migrate & seeder", "#FFFF00"))                 // Yellow color for option 7
+		fmt.Println(colorize("3. Create Module with run", "#0080ff"))                // Green color for option 1
+		fmt.Println(colorize("4. Create Migration", "#FFFF00"))             // Yellow color for option 2
+		fmt.Println(colorize("5. Create Seeder", "#0000FF"))                // Blue color for option 3
+		fmt.Println(colorize("6. Create Migration with Seeder", "#ccff66")) // Magenta color for option 4
+		fmt.Println(colorize("7. Apply Migrations", "#00FFFF"))             // Cyan color for option 5
+		fmt.Println(colorize("8. Run Seeders", "#0080ff"))                  // Green color for option 6
+		fmt.Println(colorize("9. Scaffold Auth", "#FFA200"))                 // Yellow color for option 7
+		fmt.Println(colorize("10. Run API Docs", "#FFFF00"))                 // Yellow color for option 7
 		fmt.Println(colorize("0. Exit", "#FF0000"))          // Red color for return option
 		fmt.Print(colorize("Enter the command number: ", "#006600"))        // Green color for the input prompt
 
@@ -121,13 +123,22 @@ func handleChoice(choice int) {
 	case 2:
 		moduleName := createMenu("Enter module name: ", "Module")
 		args := []string{"create", moduleName}
-		if err := create.Run(nil, args); err != nil {
+		if err := create.ModuleWithMS(nil, args); err != nil {
 			fmt.Println()
 			fmt.Println("\x1b[31mError creating module\x1b[0m")
 			fmt.Println()
 			showMenu()
 		}
 	case 3:
+		moduleName := createMenu("Enter module name: ", "Module")
+		args := []string{"create", moduleName}
+		if err := create.Run(nil, args); err != nil {
+			fmt.Println()
+			fmt.Println("\x1b[31mError creating module\x1b[0m")
+			fmt.Println()
+			showMenu()
+		}
+	case 4:
 		migrationName := createMenu("Enter migration name: ", "Migration")
 		args := []string{"create", migrationName}
 		if err := create.MigrationCreate(nil, args); err != nil {
@@ -136,7 +147,7 @@ func handleChoice(choice int) {
 			fmt.Println()
 			showMenu()
 		}
-	case 4:
+	case 5:
 		seederName := createMenu("Enter seeder name: ", "Seeder")
 		args := []string{"create", seederName}
 		if err := create.SeederCreate(nil, args); err != nil {
@@ -145,7 +156,7 @@ func handleChoice(choice int) {
 			fmt.Println()
 			showMenu()
 		}
-	case 5:
+	case 6:
 		name := createMenu("Enter name for migration and seeder: ", "Seeder")
 		args := []string{"create", name}
 		if err := create.MigrationWithSeederCreate(nil, args); err != nil {
@@ -154,21 +165,28 @@ func handleChoice(choice int) {
 			fmt.Println()
 			showMenu()
 		}
-	case 6:
+	case 7:
 		if err := create.ApplyMigrations(nil, nil); err != nil {
 			fmt.Println()
 			fmt.Println(colorize(err.Error(), "#FF0000"))
 			fmt.Println()
 			showMenu()
 		}
-	case 7:
+	case 8:
 		if err := create.RunSeeders(nil, nil); err != nil {
 			fmt.Println()
 			fmt.Println(colorize(err.Error(), "#FF0000"))
 			fmt.Println()
 			showMenu()
 		}
-	case 8:
+	case 9:
+		if err := create.ScaffoldApp(nil, nil); err != nil {
+			fmt.Println()
+			fmt.Println(colorize(err.Error(), "#FF0000"))
+			fmt.Println()
+			showMenu()
+		}
+	case 10:
 		Yes()
 		
 	default:

@@ -9,6 +9,7 @@ import (
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/infrastructure/persistence"
 	"{{AppName}}/{{AppRoot}}/{{PluralLowerName}}/repository"
 	"github.com/JubaerHossain/rootx/pkg/core/app"
+	"go.uber.org/zap"
 )
 
 type Service struct {
@@ -28,6 +29,7 @@ func (s *Service) Get{{PluralCapitalName}}(r *http.Request) (*entity.{{SingularC
 	// Call repository to get all {{PluralLowerName}}
 	{{PluralLowerName}}, {{SingularLowerName}}Err := s.repo.Get{{PluralCapitalName}}(r)
 	if {{SingularLowerName}}Err != nil {
+		s.app.Logger.Error("Error getting {{SingularLowerName}}", zap.Error({{SingularLowerName}}Err))
 		return nil, {{SingularLowerName}}Err
 	}
 	return {{PluralLowerName}}, nil
@@ -39,6 +41,7 @@ func (s *Service) Get{{PluralCapitalName}}(r *http.Request) (*entity.{{SingularC
 func (s *Service) Create{{SingularCapitalName}}({{SingularLowerName}} *entity.{{SingularCapitalName}}, r *http.Request)  error {
 	// Add any validation or business logic here before creating the {{SingularLowerName}}
     if err := s.repo.Create{{SingularCapitalName}}({{SingularLowerName}}, r); err != nil {
+		s.app.Logger.Error("Error creating {{SingularLowerName}}", zap.Error(err))
         return err
     }
 	return nil
@@ -51,6 +54,7 @@ func (s *Service) Get{{SingularCapitalName}}ByID(r *http.Request) (*entity.{{Sin
 	}
 	{{SingularLowerName}}, {{SingularLowerName}}Err := s.repo.Get{{SingularCapitalName}}ByID(uint(id))
 	if {{SingularLowerName}}Err != nil {
+		s.app.Logger.Error("Error getting {{SingularLowerName}} by ID", zap.Error({{SingularLowerName}}Err))
 		return nil, {{SingularLowerName}}Err
 	}
 	return {{SingularLowerName}}, nil
@@ -64,6 +68,7 @@ func (s *Service) Get{{SingularCapitalName}}Details(r *http.Request) (*entity.Re
 	}
 	{{SingularLowerName}}, {{SingularLowerName}}Err := s.repo.Get{{SingularCapitalName}}(uint(id))
 	if {{SingularLowerName}}Err != nil {
+		s.app.Logger.Error("Error getting {{SingularLowerName}} details", zap.Error({{SingularLowerName}}Err))
 		return nil, {{SingularLowerName}}Err
 	}
 	return {{SingularLowerName}}, nil
@@ -79,6 +84,7 @@ func (s *Service) Update{{SingularCapitalName}}(r *http.Request, {{SingularLower
 
 	err2 := s.repo.Update{{SingularCapitalName}}(old{{SingularCapitalName}}, {{SingularLowerName}}, r)
 	if err2 != nil {
+		s.app.Logger.Error("Error updating {{SingularLowerName}}", zap.Error(err2))
 		return err2
 	}
 	return  nil
@@ -94,6 +100,7 @@ func (s *Service) Delete{{SingularCapitalName}}(r *http.Request) error {
 
 	err2 := s.repo.Delete{{SingularCapitalName}}({{SingularLowerName}}, r)
 	if err2 != nil {
+		s.app.Logger.Error("Error deleting {{SingularLowerName}}", zap.Error(err2))
 		return err2
 	}
 

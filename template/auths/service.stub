@@ -1,0 +1,41 @@
+package service
+
+import (
+	"net/http"
+
+	"{{AppName}}/domain/auths/entity"
+	"{{AppName}}/domain/auths/infrastructure/persistence"
+	"{{AppName}}/domain/auths/repository"
+	"github.com/JubaerHossain/rootx/pkg/core/app"
+)
+
+type Service struct {
+	app  *app.App
+	repo repository.AuthRepository
+}
+
+func NewService(app *app.App) *Service {
+	repo := persistence.NewAuthRepository(app)
+	return &Service{
+		app:  app,
+		repo: repo,
+	}
+}
+
+// GetSignIn returns a new auth
+func (s *Service) GetSignIn(newUser *entity.LoginUser, r *http.Request) (*entity.LoginUserResponse, error) {
+	auth, authErr := s.repo.GetSignIn(r, newUser)
+	if authErr != nil {
+		return nil, authErr
+	}
+	return auth, nil
+}
+
+// GetRefreshToken returns a new auth
+func (s *Service) GetRefreshToken(refreshToken *entity.RefreshToken, r *http.Request) (*entity.LoginUserResponse, error) {
+	auth, authErr := s.repo.GetRefreshToken(r, refreshToken)
+	if authErr != nil {
+		return nil, authErr
+	}
+	return auth, nil
+}
