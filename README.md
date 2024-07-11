@@ -305,6 +305,6 @@ DB_PASSWORD=db_password
 - [@JubaerHossain](https://www.github.com/JubaerHossain)
 
 ## License
-[MIT](https://choosealicense.com/licenses/mit/)
+[MIT]
 
 
