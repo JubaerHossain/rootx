@@ -2,8 +2,10 @@
   "cSpell.words": [
     "gorm",
     "Hossain",
+    "jackc",
     "oneof",
     "Payables",
+    "pgxpool",
     "rootx",
     "swaggo",
     "varchar"

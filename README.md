@@ -292,12 +292,6 @@ DB_USER=db_user
 DB_PASSWORD=db_password
 ```
 
-  #### run the following command
-```bash
-  go run ./cmd/rootx
-```
-
-  - Select an option: 7
 
 
 
