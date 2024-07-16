@@ -2,7 +2,6 @@ package filesystem
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -11,7 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/JubaerHossain/rootx/pkg/core/config"
-	
+
 	rootUtils "github.com/JubaerHossain/rootx/pkg/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -48,20 +47,17 @@ func (s *FileUploadService) FileUpload(r *http.Request, formKey string, folder s
 	uniqueFileName := s.generateUniqueFileName(handler.Filename)
 
 	// Determine storage destination based on app config
-	switch s.Config.StorageDisk {
-	case "s3":
+	if s.Config.StorageDisk == "s3" {
 		filePath := folder + "/" + uniqueFileName
 		return s.uploadToS3(file, s.Config, filePath, handler.Filename)
-	case "local":
+	} else {
 		return s.saveToLocal(file, s.Config, folder, uniqueFileName)
-	default:
-		return nil, errors.New("storage disk not supported")
 	}
 }
 
 func (s *FileUploadService) generateUniqueFileName(originalName string) string {
 	// Generate a timestamp
-	
+
 	// Extract the file extension
 	ext := filepath.Ext(originalName)
 	name := originalName[:len(originalName)-len(ext)]
@@ -188,13 +184,10 @@ func (s *FileUploadService) DeleteFromS3(filePath string, cfg *config.Config) er
 // Example usage to delete an image (assuming you have the filePath stored)
 func (s *FileUploadService) DeleteImage(filePath string) error {
 	var err error
-	switch s.Config.StorageDisk {
-	case "s3":
+	if s.Config.StorageDisk == "s3" {
 		err = s.DeleteFromS3(filePath, s.Config)
-	case "local":
+	} else {
 		err = s.DeleteFromLocal(filePath)
-	default:
-		err = errors.New("storage disk not supported")
 	}
 	return err
 }
