@@ -6,7 +6,7 @@ import (
 	"{{AppName}}/domain/auths/entity"
 	"{{AppName}}/domain/auths/service"
 	"github.com/JubaerHossain/rootx/pkg/core/app"
-	utilQuery "github.com/JubaerHossain/rootx/pkg/query"
+	"github.com/JubaerHossain/rootx/pkg/core/validation"
 	"github.com/JubaerHossain/rootx/pkg/utils"
 )
 
@@ -33,7 +33,7 @@ func (h *Handler) GetSignIn(w http.ResponseWriter, r *http.Request) {
 
 	var newUser entity.LoginUser
 
-	pareErr := utilQuery.BodyParse(&newUser, w, r, true) // Parse request body and validate it
+	pareErr := validation.BodyParse(&newUser, w, r, true) // Parse request body and validate it
 	if pareErr != nil {
 		return
 	}
@@ -59,7 +59,7 @@ func (h *Handler) GetSignIn(w http.ResponseWriter, r *http.Request) {
 // @Router /auth/refresh-token [post]
 func (h *Handler) GetRefreshToken(w http.ResponseWriter, r *http.Request) {
 	var refreshToken entity.RefreshToken
-	if pareErr := utilQuery.BodyParse(&refreshToken, w, r, true); pareErr != nil {
+	if pareErr := validation.BodyParse(&refreshToken, w, r, true); pareErr != nil {
 		return
 	}
 	auth, err := h.App.GetRefreshToken(&refreshToken, r)

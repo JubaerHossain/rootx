@@ -14,7 +14,7 @@ import (
 type key int
 
 const (
-	claimsKey key = iota
+	ClaimsKey key = iota
 )
 
 // AuthMiddleware validates JWT tokens and protects routes
@@ -40,13 +40,13 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Add claims to context for use in other handlers
-		ctx := context.WithValue(r.Context(), claimsKey, claims)
+		ctx := context.WithValue(r.Context(), ClaimsKey, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // GetClaimsFromContext retrieves claims from request context
 func GetClaimsFromContext(ctx context.Context) (jwt.MapClaims, bool) {
-	claims, ok := ctx.Value(claimsKey).(jwt.MapClaims)
+	claims, ok := ctx.Value(ClaimsKey).(jwt.MapClaims)
 	return claims, ok
 }

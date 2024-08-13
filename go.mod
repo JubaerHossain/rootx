@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/aws/aws-sdk-go v1.54.10
 	github.com/gertd/go-pluralize v0.2.1
+	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jackc/pgx/v5 v5.6.0
