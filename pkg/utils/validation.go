@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-playground/validator"
+	"github.com/go-playground/validator/v10"
 )
 
 // WriteJSONEValidation dynamically gets JSON tag fields and writes a validation error response
