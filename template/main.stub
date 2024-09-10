@@ -27,6 +27,13 @@ import (
 // @BasePath        /api
 
 func main() {
+	// Set the time zone for the entire application
+	tz := os.Getenv("TIMEZONE")
+	if tz == "" {
+		tz = "UTC" // Default to UTC if TZ is not set
+	}
+	os.Setenv("TZ", tz)
+	
 	// Initialize the application
 	application, err := app.StartApp()
 	if err != nil {

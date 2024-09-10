@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/JubaerHossain/rootx/pkg/core/config"
 
@@ -63,7 +64,11 @@ func (s *FileUploadService) generateUniqueFileName(originalName string) string {
 	name := originalName[:len(originalName)-len(ext)]
 
 	// Create a new file name by appending the unique before the extension
-	newFileName := fmt.Sprintf("%s_%s%s", name, rootUtils.GenerateUniqueNumber(8), ext)
+	uniqueNumber, err := rootUtils.GenerateUniqueNumber(8)
+	if err != nil {
+		uniqueNumber = time.Now().Format("20060102150405")
+	}
+	newFileName := fmt.Sprintf("%s_%s%s", name, uniqueNumber, ext)
 
 	return newFileName
 }

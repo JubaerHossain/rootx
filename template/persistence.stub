@@ -215,18 +215,46 @@ func (r *{{SingularCapitalName}}RepositoryImpl) Update{{SingularCapitalName}}(ol
 		}
 	}()
 
-	query := `
+	queryParts := []string{}
+	args := []interface{}{}
+	argID := 1
+
+	if {{SingularLowerName}}.Name != "" {
+		queryParts = append(queryParts, fmt.Sprintf("Name = $%d", argID))
+		args = append(args, {{SingularLowerName}}.Name)
+		argID++
+	}
+
+	// Update status if provided
+	if {{SingularLowerName}}.Status != nil {
+		queryParts = append(queryParts, fmt.Sprintf("status = $%d", argID))
+		args = append(args, *{{SingularLowerName}}.Status) // Dereference the pointer
+		argID++
+	}
+
+	// If no fields to update, return early
+	if len(queryParts) == 0 {
+		return fmt.Errorf("no fields to update")
+	}
+
+	// Build and execute the update query
+	query := fmt.Sprintf(`
 		UPDATE {{PluralLowerName}}
-		SET name = $1, status = $2
-		WHERE id = $3
-		RETURNING id, name, status
-	`
-	row := tx.QueryRow(context.Background(), query, {{SingularLowerName}}.Name,  {{SingularLowerName}}.Status, old{{SingularCapitalName}}.ID)
-	update{{SingularCapitalName}} := &entity.{{SingularCapitalName}}{}
-	err = row.Scan(&update{{SingularCapitalName}}.ID, &update{{SingularCapitalName}}.Name, &update{{SingularCapitalName}}.Status)
+		SET %s
+		WHERE id = $%d
+	`, strings.Join(queryParts, ", "), argID)
+	args = append(args, old{{SingularCapitalName}}.ID)
+
+	_, err = tx.Exec(context.Background(), query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to update section: %w", err)
+	}
+
+	// Commit the transaction before clearing the cache
+	err = tx.Commit(context.Background())
 	if err != nil {
 		tx.Rollback(context.Background())
-		return err
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	// Clear cache

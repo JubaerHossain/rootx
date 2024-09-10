@@ -7,10 +7,8 @@ import (
 )
 
 // {{SingularCapitalName}}Router registers routes for API endpoints
-func {{SingularCapitalName}}Router(application *app.App) http.Handler {
-	router := http.NewServeMux()
+func {{SingularCapitalName}}Router(router *http.ServeMux, application *app.App) http.Handler {
 
-	
 	handler := NewHandler(application)
 	// Register {{SingularLowerName}} routes
 

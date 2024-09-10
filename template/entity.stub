@@ -17,7 +17,7 @@ type {{SingularCapitalName}} struct {
 // Update{{SingularCapitalName}} represents the {{SingularLowerName}} update request
 type Update{{SingularCapitalName}} struct {
 	Name   string        `json:"name" validate:"omitempty,min=3,max=100"`
-	Status bool          `json:"status"`
+	Status *bool          `json:"status"`
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
