@@ -10,6 +10,22 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// ValidateAndCollectErrors validates the input struct and returns any custom and validation errors found.
+func ValidateAndCollectErrors(w http.ResponseWriter, statusCode int, errors map[string]string, error interface{}, obj interface{}) (map[string]string) {
+	// errors := make(map[string]string)
+	fieldMap := GetJSONFieldMap(obj)
+	for _, err := range error.(validator.ValidationErrors) {
+		// errors[err.Field()] = err.Field() + " is " + err.Tag() + " " + err.Param()
+		jsonField, exists := fieldMap[err.Field()]
+		if !exists {
+			jsonField = err.Field() // Fallback to struct field name if JSON tag not available
+		}
+		errors[jsonField] = FormatErrorMessage(jsonField, err)
+	}
+
+	return errors
+}
+
 // WriteJSONEValidation dynamically gets JSON tag fields and writes a validation error response
 func ValidationResponse(w http.ResponseWriter, statusCode int, error interface{}, obj interface{}) {
 	errors := make(map[string]string)
