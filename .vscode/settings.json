@@ -3,6 +3,7 @@
     "gorm",
     "Hossain",
     "jackc",
+    "mapstructure",
     "oneof",
     "Payables",
     "pgxpool",

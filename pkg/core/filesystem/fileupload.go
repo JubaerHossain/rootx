@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/JubaerHossain/rootx/pkg/core/config"
@@ -48,7 +49,7 @@ func (s *FileUploadService) FileUpload(r *http.Request, formKey string, folder s
 	uniqueFileName := s.generateUniqueFileName(handler.Filename)
 
 	// Determine storage destination based on app config
-	if s.Config.StorageDisk == "s3" {
+	if strings.TrimSpace(s.Config.StorageDisk) == "s3" {
 		filePath := folder + "/" + uniqueFileName
 		return s.uploadToS3(file, s.Config, filePath, handler.Filename)
 	} else {
@@ -189,7 +190,7 @@ func (s *FileUploadService) DeleteFromS3(filePath string, cfg *config.Config) er
 // Example usage to delete an image (assuming you have the filePath stored)
 func (s *FileUploadService) DeleteImage(filePath string) error {
 	var err error
-	if s.Config.StorageDisk == "s3" {
+	if strings.TrimSpace(s.Config.StorageDisk) == "s3" {
 		err = s.DeleteFromS3(filePath, s.Config)
 	} else {
 		err = s.DeleteFromLocal(filePath)

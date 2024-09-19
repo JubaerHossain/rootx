@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"os"        // Add this import
 	"os/signal" // Add this import
-	"syscall"   // Add this import
+	"strings"
+	"syscall" // Add this import
 	"time"
 
 	"github.com/JubaerHossain/rootx/pkg/core/cache"
@@ -56,11 +57,10 @@ func StartApp() (*App, error) {
 
 	// Initialize database and cache asynchronously
 
-
 	var pgDB *pgxpool.Pool
 	var mySQLDB *sql.DB
 
-	if cfg.DBType == "postgres" {
+	if strings.TrimSpace(cfg.DBType) == "postgres" {
 		db, err := InitPqDatabase(cfg)
 		if err != nil {
 			return nil, err
@@ -74,8 +74,6 @@ func StartApp() (*App, error) {
 		}
 		mySQLDB = mdb
 	}
-
-
 
 	cacheService, err := InitCache()
 	if err != nil {

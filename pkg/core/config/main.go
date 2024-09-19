@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -49,8 +50,8 @@ var (
 	configMutex  sync.Mutex
 )
 
+// LoadConfig reads and parses the configuration file and environment variables
 func LoadConfig() (*Config, error) {
-	// Lock the mutex to ensure thread safety during configuration loading
 	configMutex.Lock()
 	defer configMutex.Unlock()
 
@@ -72,6 +73,11 @@ func LoadConfig() (*Config, error) {
 	// Set default values for configuration fields
 	setDefaultValues(&cfg)
 
+	// Validate configuration values
+	if err := validateConfig(&cfg); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
 	// Set the global configuration variable
 	GlobalConfig = &cfg
 
@@ -80,8 +86,46 @@ func LoadConfig() (*Config, error) {
 
 // setDefaultValues sets default values for configuration fields
 func setDefaultValues(cfg *Config) {
+	if cfg.AppPort == 0 {
+		cfg.AppPort = 8080 // Default port if not set
+	}
 	if cfg.RedisDB == 0 {
 		cfg.RedisDB = 0 // Default Redis database
 	}
-	// Add default values for other configuration fields as needed
+	if cfg.RateLimit == 0 {
+		cfg.RateLimit = 100 // Default rate limit
+	}
+	if cfg.StorageDisk == "" {
+		cfg.StorageDisk = "local" // Default storage disk
+	}
+	if cfg.JwtExpiration == "" {
+		cfg.JwtExpiration = "1h" // Default JWT expiration
+	}
+}
+
+// validateConfig validates critical configuration values
+func validateConfig(cfg *Config) error {
+	if cfg.DBHost == "" {
+		return fmt.Errorf("DBHost must be set")
+	}
+	if cfg.DBPort <= 0 {
+		return fmt.Errorf("DBPort must be a positive integer")
+	}
+	if cfg.StorageDisk != "local" && cfg.StorageDisk != "s3" {
+		return fmt.Errorf("StorageDisk must be either 'local' or 's3'")
+	}
+	if cfg.JwtSecretKey == "" {
+		return fmt.Errorf("JWTSecretKey must be set")
+	}
+	// Add other validation rules as needed
+	return nil
+}
+
+// LoadSecretFromEnv loads a secret from an environment variable
+func LoadSecretFromEnv(key string) (string, error) {
+	value := os.Getenv(key)
+	if value == "" {
+		return "", fmt.Errorf("environment variable %s not set", key)
+	}
+	return value, nil
 }
