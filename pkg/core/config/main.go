@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -111,6 +112,7 @@ func validateConfig(cfg *Config) error {
 	if cfg.DBPort <= 0 {
 		return fmt.Errorf("DBPort must be a positive integer")
 	}
+	cfg.StorageDisk = strings.TrimSpace(cfg.StorageDisk)
 	if cfg.StorageDisk != "local" && cfg.StorageDisk != "s3" {
 		return fmt.Errorf("StorageDisk must be either 'local' or 's3'")
 	}
