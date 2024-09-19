@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/JubaerHossain/rootx/pkg/core/config"
@@ -16,7 +17,7 @@ func LimiterMiddleware(next http.Handler) http.Handler {
 		return next
 	}
 	limit := config.GlobalConfig.RateLimit
-	duration, err := time.ParseDuration(config.GlobalConfig.RateLimitDuration)
+	duration, err := time.ParseDuration(os.Getenv("RATE_LIMIT_DURATION"))
 	if err != nil {
 		duration = time.Second * 2
 	}

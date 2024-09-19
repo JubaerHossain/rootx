@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/JubaerHossain/rootx/pkg/core/app"
@@ -24,19 +23,23 @@ var (
 func CreateTokens(userId uint, role string, app *app.App, refreshExp uint) (string, string, error) {
 
 	jwtTime := app.Config.JwtExpiration
-	if jwtTime == "" {
-		jwtTime = "24"
-	}
-	accessExp, err := strconv.Atoi(jwtTime)
-	if err != nil {
-		accessExp = 24
+	if jwtTime == 0 {
+		jwtTime = 24 * time.Hour
 	}
 
-	refreshExpInt := int(refreshExp) // Ensure refreshExp is an integer
+	if refreshExp == 0 {
+		refreshExp = 24 * 7
+	}
 
 	// Define token expiration times
-	accessTokenExpirationTime := time.Now().Add(time.Minute * time.Duration(accessExp)).Unix()
-	refreshTokenExpirationTime := time.Now().Add(time.Hour * time.Duration(refreshExpInt)).Unix()
+	accessTokenExpirationTime := time.Now().Add(jwtTime).Unix()
+	refreshTokenExpirationTime := time.Now().Add(time.Hour * time.Duration(refreshExp)).Unix()
+
+	// refreshExpInt := int(refreshExp) // Ensure refreshExp is an integer
+
+	// Define token expiration times
+	// accessTokenExpirationTime := time.Now().Add(time.Minute * time.Duration(accessExp)).Unix()
+	// refreshTokenExpirationTime := time.Now().Add(time.Hour * time.Duration(refreshExpInt)).Unix()
 
 	secretKey := app.Config.JwtSecretKey
 	if secretKey == "" {

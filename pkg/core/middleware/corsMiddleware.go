@@ -5,7 +5,7 @@ import (
 )
 
 // CORSMiddleware is a middleware function that adds CORS headers to HTTP responses.
-func ApplyCORSMiddleware(handler http.Handler) http.Handler {
+func CorsMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "*")

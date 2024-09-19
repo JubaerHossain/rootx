@@ -78,8 +78,9 @@ func (s *FileUploadService) generateUniqueFileName(originalName string) string {
 func (s *FileUploadService) uploadToS3(file multipart.File, cfg *config.Config, filePath string, originalName string) (*FileMetadata, error) {
 	// Initialize AWS session
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(cfg.AwsRegion),
-		Credentials: credentials.NewStaticCredentials(cfg.AwsAccessKey, cfg.AwsSecretKey, ""),
+		Region:      aws.String(strings.TrimSpace(cfg.AwsRegion)),
+		Credentials: credentials.NewStaticCredentials(strings.TrimSpace(cfg.AwsAccessKey), strings.TrimSpace(cfg.AwsSecretKey), ""),
+		Endpoint:   aws.String(strings.TrimSpace(cfg.AwsEndpoint)),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AWS session: %v", err)
@@ -96,7 +97,7 @@ func (s *FileUploadService) uploadToS3(file multipart.File, cfg *config.Config, 
 
 	// Upload file to S3 bucket
 	_, err = svc.PutObject(&s3.PutObjectInput{
-		Bucket:      aws.String(cfg.AwsBucket),
+		Bucket:      aws.String(strings.TrimSpace(cfg.AwsBucket)),
 		Key:         aws.String(filePath),
 		Body:        bytes.NewReader(fileBytes),
 		ContentType: aws.String(http.DetectContentType(fileBytes)),
@@ -107,13 +108,13 @@ func (s *FileUploadService) uploadToS3(file multipart.File, cfg *config.Config, 
 	}
 
 	// Construct public URL for the uploaded file
-	fileURL := fmt.Sprintf("%s/%s/%s", cfg.AwsEndpoint, cfg.AwsBucket, filePath)
+	fileURL := fmt.Sprintf("%s/%s/%s", cfg.AwsEndpoint, strings.TrimSpace(cfg.AwsBucket), filePath)
 
 	// Return file metadata
 	metadata := &FileMetadata{
 		Name:         filepath.Base(filePath),
 		OriginalName: originalName,
-		RootPath:     cfg.AwsBucket,
+		RootPath:     strings.TrimSpace(cfg.AwsBucket),
 		Extension:    filepath.Ext(filePath),
 		Path:         filePath,
 		Type:         http.DetectContentType(fileBytes),
@@ -125,7 +126,7 @@ func (s *FileUploadService) uploadToS3(file multipart.File, cfg *config.Config, 
 // saveToLocal saves file to local disk and returns file metadata
 func (s *FileUploadService) saveToLocal(file multipart.File, cfg *config.Config, folder string, filename string) (*FileMetadata, error) {
 	// Define the root directory path
-	rootDir := cfg.StoragePath
+	rootDir := strings.TrimSpace(cfg.StoragePath)
 
 	// Create full file path
 	filePath := filepath.Join(rootDir, folder, filename)
@@ -148,7 +149,7 @@ func (s *FileUploadService) saveToLocal(file multipart.File, cfg *config.Config,
 	}
 
 	// Return file metadata
-	fileURL := fmt.Sprintf("%s/uploads/%s/%s", cfg.Domain, folder, filename)
+	fileURL := fmt.Sprintf("%s/uploads/%s/%s", strings.TrimSpace(cfg.Domain), folder, filename)
 	metadata := &FileMetadata{
 		Name:         filename,
 		OriginalName: filename,
@@ -165,8 +166,9 @@ func (s *FileUploadService) saveToLocal(file multipart.File, cfg *config.Config,
 func (s *FileUploadService) DeleteFromS3(filePath string, cfg *config.Config) error {
 	// Initialize AWS session
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(cfg.AwsRegion),
-		Credentials: credentials.NewStaticCredentials(cfg.AwsAccessKey, cfg.AwsSecretKey, ""),
+		Region:      aws.String(strings.TrimSpace(cfg.AwsRegion)),
+		Credentials: credentials.NewStaticCredentials(strings.TrimSpace(cfg.AwsAccessKey), strings.TrimSpace(cfg.AwsSecretKey), ""),
+		Endpoint:    aws.String(strings.TrimSpace(cfg.AwsEndpoint)),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create AWS session: %v", err)
@@ -177,7 +179,7 @@ func (s *FileUploadService) DeleteFromS3(filePath string, cfg *config.Config) er
 
 	// Delete object from S3 bucket
 	_, err = svc.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(cfg.AwsBucket),
+		Bucket: aws.String(strings.TrimSpace(cfg.AwsBucket)),
 		Key:    aws.String(filePath),
 	})
 	if err != nil {

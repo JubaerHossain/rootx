@@ -25,7 +25,7 @@ func NewPgxDatabaseService(cfg *config.Config) (*PgxDatabaseService, error) {
 	}
 
 	config.MaxConnIdleTime = time.Duration(cfg.DBMaxIdleConns) * time.Minute
-	config.MaxConnLifetime = time.Duration(cfg.DBMaxConnLifetime) * time.Minute
+	config.MaxConnLifetime = cfg.DBMaxConnLifetime
 	config.MaxConns = int32(cfg.MaxConns) // Adjust based on your environment
 	config.MinConns = int32(cfg.MinConns) // Adjust based on your environment
 
