@@ -51,6 +51,13 @@ func Pagination(req *http.Request, app *app.App, table string) (pagination coreE
 		nextPage = &nextPageValue
 	}
 
+	// Calculate current items on this page
+	currentItems := limit
+	if offset+limit > totalItems {
+		currentItems = totalItems - offset
+	}
+
+
 	// Calculate total pages
 	totalPages := totalItems / limit
 	if totalItems%limit != 0 {
@@ -60,6 +67,7 @@ func Pagination(req *http.Request, app *app.App, table string) (pagination coreE
 	// Prepare pagination struct
 	return coreEntity.Pagination{
 		TotalItems:   totalItems,
+		TotalCurrentItems: currentItems,
 		TotalPages:   totalPages,
 		CurrentPage:  page,
 		NextPage:     nextPage,
@@ -107,6 +115,12 @@ func Paginate(req *http.Request, app *app.App, baseQuery, filterQuery string) (c
 		nextPage = &nextPageValue
 	}
 
+	// Calculate current items on this page
+	currentItems := limit
+	if offset+limit > totalItems {
+		currentItems = totalItems - offset
+	}
+
 	// Calculate total pages
 	totalPages := totalItems / limit
 	if totalItems%limit != 0 {
@@ -116,6 +130,7 @@ func Paginate(req *http.Request, app *app.App, baseQuery, filterQuery string) (c
 	// Prepare pagination struct
 	return coreEntity.Pagination{
 		TotalItems:   totalItems,
+		TotalCurrentItems: currentItems,
 		TotalPages:   totalPages,
 		CurrentPage:  page,
 		NextPage:     nextPage,
