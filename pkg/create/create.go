@@ -661,14 +661,11 @@ func createServerFile(name string) error {
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
-	"runtime"
 	"syscall"
 	"time"
 
@@ -677,81 +674,62 @@ import (
 	"github.com/JubaerHossain/rootx/pkg/core/middleware"
 	"github.com/JubaerHossain/rootx/pkg/core/monitor"
 	"github.com/JubaerHossain/rootx/pkg/utils"
+	"go.uber.org/zap"
 )
 
-// @title           RootX API
+// @title           Golang Starter API
 // @version         1.0
-// @description     This is a RESTful API service for RootX
-// @host            localhost:9008
-// @BasePath        /api/v1
-
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
+// @description     This is a starter API for Golang projects
+// @host            localhost:3021
+// @BasePath        /api
 
 func main() {
+
+	// Set the time zone for the entire application
+	tz := os.Getenv("TIMEZONE")
+	if tz == "" {
+		tz = "UTC" // Default to UTC if TZ is not set
+	}
+	os.Setenv("TZ", tz)
+
 	// Initialize the application
 	application, err := app.StartApp()
 	if err != nil {
 		log.Fatalf("❌ Failed to start application: %v", err)
 	}
-
 	// Initialize HTTP server
-	httpServer := initHTTPServer(application)
+	httpServer := InitHTTPServer(application)
+
+	// Create error channel for HTTP server
+	httpErrChan := make(chan error, 1)
 
 	go func() {
-		if err := startHTTPServer(application, httpServer); err != nil {
-			log.Printf("❌ %v", err)
-			log.Println("🔄 Trying to start the server on another port...")
-			if err := startHTTPServerOnAvailablePort(application, httpServer); err != nil {
-				log.Fatalf("❌ Failed to start server on another port: %v", err)
-			}
+		if err := StartHTTPServer(application, httpServer); err != nil {
+			httpErrChan <- err
 		}
 	}()
 
-	baseURL := fmt.Sprintf("http://localhost:%d", application.Config.AppPort)
-	log.Printf("🌐 API base URL: %s", baseURL)
-
-	// Open Swagger URL in browser if in development environment
-	if application.Config.AppEnv == "development" {
-		openBrowser(baseURL)
-	}
-
 	// Graceful shutdown
-	gracefulShutdown(httpServer, 5*time.Second)
+	gracefulShutdown(httpServer, application, 30*time.Second, httpErrChan)
 }
 
-func initHTTPServer(application *app.App) *http.Server {
-	return &http.Server{
-		Addr:    fmt.Sprintf(":%d", application.Config.AppPort),
-		Handler: setupRoutes(application),
-	}
+func InitHTTPServer(application *app.App) *http.Server {
+	routes := SetupRoutes(application)
+	corsRoutes := middleware.CorsMiddleware(routes)
+	application.SetupHTTPServer(corsRoutes)
+	return application.HttpServer
 }
 
-func startHTTPServer(application *app.App, server *http.Server) error {
+func StartHTTPServer(application *app.App, server *http.Server) error {
+	application.Logger.Info("Starting HTTP server", zap.Int("port", application.Config.AppPort))
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
-		return fmt.Errorf("Could not start server: %v", err)
+		return fmt.Errorf("could not start server: %w", err)
 	}
 	return nil
 }
 
-func startHTTPServerOnAvailablePort(application *app.App, server *http.Server) error {
-	for i := application.Config.AppPort + 1; i <= application.Config.AppPort+10; i++ {
-		newAddr := fmt.Sprintf(":%d", i)
-		server.Addr = newAddr
-		log.Printf("Trying to start server on port %d...", i)
-		err := startHTTPServer(application, server)
-		if err == nil {
-			log.Printf("✅ Server started on port %d", i)
-			return nil
-		}
-	}
-	return errors.New("Could not find available port to start server")
-}
-
-func setupRoutes(application *app.App) http.Handler {
-	// Create a new ServeMux
+func SetupRoutes(application *app.App) http.Handler {
 	mux := http.NewServeMux()
 
 	// Register health check endpoint
@@ -760,54 +738,44 @@ func setupRoutes(application *app.App) http.Handler {
 	// Register monitoring endpoint
 	mux.Handle("/metrics", monitor.MetricsHandler())
 
-	// Register file uploads route
-	mux.Handle("/uploads/", http.StripPrefix("/uploads", http.FileServer(http.Dir("storage"))))
-
-	// Add security headers
-	mux.Handle("/", middleware.LimiterMiddleware(middleware.LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		utils.WriteJSONResponse(w, http.StatusOK, map[string]interface{}{"message": "Welcome to the API"})
-	}))))
+	// Add security headers and rate limiting
+	mux.Handle("/", middleware.SecurityHeadersMiddleware(
+		middleware.LimiterMiddleware(
+			middleware.LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				utils.WriteJSONResponse(w, http.StatusOK, map[string]interface{}{"message": "Welcome to the API"})
+			})),
+		),
+	))
 
 	return middleware.PrometheusMiddleware(mux, monitor.RequestsTotal(), monitor.RequestDuration())
 }
 
-func openBrowser(url string) {
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "linux":
-		cmd = "xdg-open"
-	case "windows":
-		cmd = "rundll32"
-		args = append(args, "url.dll,FileProtocolHandler")
-	case "darwin":
-		cmd = "open"
-	default:
-		return
-	}
-	args = append(args, url)
-	if err := exec.Command(cmd, args...).Start(); err != nil {
-		log.Printf("Failed to open browser: %v", err)
-	}
-}
-
-func gracefulShutdown(server *http.Server, timeout time.Duration) {
+func gracefulShutdown(httpServer *http.Server, application *app.App, timeout time.Duration, httpErrChan <-chan error) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Printf("⚙️ Shutting down server...")
+
+	select {
+	case <-quit:
+		application.Logger.Info("Shutdown signal received")
+	case err := <-httpErrChan:
+		application.Logger.Error("HTTP server error", zap.Error(err))
+	}
+
+	application.Logger.Info("Shutting down HTTP server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("❌ Could not gracefully shutdown the server: %v", err)
+	if err := httpServer.Shutdown(ctx); err != nil {
+		application.Logger.Error("Could not gracefully shutdown the HTTP server", zap.Error(err))
 	}
 
-	log.Printf("✅ Server gracefully stopped")
-}
-`
+	if err := application.CloseResources(); err != nil {
+		application.Logger.Error("Error closing resources", zap.Error(err))
+	}
+
+	application.Logger.Info("HTTP server gracefully stopped")
+}`
 
 	// Check if the main.go file already exists, if not create it
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
@@ -846,53 +814,47 @@ func createMainFile(templatePath, targetPath string) error {
 
 // Function to create or load .env file
 func createEnvFile() error {
-	envContent := `# Environment settings
-		APP_ENV=development
-		VERSION=1.0.0
-		APP_PORT=9008
-		DOMAIN=http://localhost:9008
-
-		# Database settings
-		DB_TYPE="postgres"
-		DB_HOST="localhost"
-		DB_PORT=5433
-		DB_NAME="starter_api"
-		DB_USER="postgres"
-		DB_PASSWORD="password"
-		DB_SSLMODE="enable"
-		DB_MAX_IDLE_CONNS=10
-		DB_MAX_CONN_LIFETIME=60
-		MAX_CONNS=1000
-		MIN_CONNS=50
-
-		# Migration and seeding settings
-		MIGRATE=false
-		SEED=false
-
-		# Redis settings
-		REDIS_URI="localhost:6379"
-		REDIS_PASSWORD=
-		IS_REDIS=false
-		REDIS_DB=0
-		REDIS_EXP="86400"
-
-		# Rate limiting settings
-		RATE_LIMIT_ENABLED=true
-		RATE_LIMIT="500"
-		RATE_LIMIT_DURATION="1m"
-
-		# JWT settings
-		JWT_SECRET_KEY=secret
-		JWT_EXPIRATION="1h"
-
-		STORAGE_DISK=local
-		STORAGE_PATH=storage
-		AWS_ACCESS_KEY=
-		AWS_SECRET_KEY=
-		AWS_REGION=ap-southeast-1
-		AWS_BUCKET=aws-bucket
-		AWS_ENDPOINT=https://s3.ap-southeast-1.amazonaws.com
-		`
+	envContent := `VERSION=1.0.0
+APP_ENV=development
+APP_PORT=8084
+DOMAIN=http://localhost:9008
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5433
+DB_NAME=crud
+DB_USER=postgres
+DB_PASSWORD=password
+DB_SSLMODE=disable
+DB_MAX_IDLE_CONNS=50
+DB_MAX_CONN_LIFETIME=10m
+MAX_CONNS=1000
+MIN_CONNS=100
+MIGRATE=true
+SEED=true
+REDIS_EXP=3600
+REDIS_URI=redis://localhost:6379
+REDIS_PASSWORD=
+REDIS_DB=0
+IS_REDIS=false
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT=500
+RATE_LIMIT_DURATION=3m
+JWT_SECRET_KEY=mysecretkey
+JWT_EXPIRATION=24h
+STORAGE_DISK=s3
+STORAGE_PATH=storage
+AWS_REGION=Default Region
+AWS_ACCESS_KEY=GGYXB9OA2D560IADFC5D
+AWS_SECRET_KEY=CFCe9ymqPW5FXCbtekgDiQ68KSLnHLYayKTpyo5A
+AWS_BUCKET=ox-room
+AWS_ENDPOINT=https://s3.brilliant.com.bd
+OTP_EXPIRATION=1
+OTP_LENGTH=6
+OTP_RESEND_DURATION=300
+READ_TIMEOUT=30
+WRITE_TIMEOUT=30
+IDLE_TIMEOUT=120
+MAX_HEADER_BYTES=1048576`
 
 	// Open or create the .env file
 	envFile, err := os.Create(".env")

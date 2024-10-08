@@ -47,6 +47,10 @@ type Config struct {
 	OtpExpiration     int           `mapstructure:"OTP_EXPIRATION"`
 	OtpLength         int           `mapstructure:"OTP_LENGTH"`
 	OtpResendDuration int           `mapstructure:"OTP_RESEND_DURATION"`
+	ReadTimeout       int           `mapstructure:"READ_TIMEOUT"`
+	WriteTimeout      int           `mapstructure:"WRITE_TIMEOUT"`
+	IdleTimeout       int           `mapstructure:"IDLE_TIMEOUT"`
+	MaxHeaderBytes    int           `mapstructure:"MAX_HEADER_BYTES"`
 }
 
 var (

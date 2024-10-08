@@ -163,8 +163,9 @@ func (app *App) SetupHTTPServer(handler http.Handler) {
 	app.HttpServer = &http.Server{
 		Addr:         fmt.Sprintf(":%d", app.Config.AppPort),
 		Handler:      handler,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  time.Duration(app.Config.ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(app.Config.WriteTimeout) * time.Second,
+		IdleTimeout:  time.Duration(app.Config.IdleTimeout) * time.Second,
+		MaxHeaderBytes: app.Config.MaxHeaderBytes,
 	}
 }
