@@ -51,7 +51,6 @@ func testConnection(db *sql.DB) error {
 
 	return fmt.Errorf("failed to ping database after multiple attempts")
 }
-
 // GetDB returns the underlying *sql.DB instance
 func (dbService *MySQLService) GetDB() *sql.DB {
 	return dbService.db
