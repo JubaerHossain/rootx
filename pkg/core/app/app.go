@@ -169,3 +169,41 @@ func (app *App) SetupHTTPServer(handler http.Handler) {
 		MaxHeaderBytes: app.Config.MaxHeaderBytes,
 	}
 }
+
+
+func (app *App) CheckDatabaseHealth() error {
+	if app.Config.DBType == "" {
+		return fmt.Errorf("database type is not configured")
+	}
+
+	var err error
+	switch app.Config.DBType {
+	case "postgres":
+		if app.DB == nil {
+			return fmt.Errorf("PostgreSQL database connection is not initialized")
+		}
+		// Set a timeout for the health check
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err = app.DB.Ping(ctx)
+		if err != nil {
+			return fmt.Errorf("PostgreSQL database is unhealthy: %w", err)
+		}
+	case "mysql":
+		if app.MDB == nil {
+			return fmt.Errorf("MySQL database connection is not initialized")
+		}
+		// Set a timeout for the health check
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err = app.MDB.PingContext(ctx)
+		if err != nil {
+			return fmt.Errorf("MySQL database is unhealthy: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported database type: %s", app.Config.DBType)
+	}
+
+	app.Logger.Info("Database health check passed", zap.String("dbType", app.Config.DBType))
+	return nil
+}
