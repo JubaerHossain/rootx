@@ -40,7 +40,7 @@ func NewPgxDatabaseService(cfg *config.Config) (*PgxDatabaseService, error) {
 	for i := 0; i < 3; i++ { // Retry logic
 		err := pool.Ping(ctx)
 		if err == nil {
-			log.Println("connected to database")
+			log.Println("connected to postgres database")
 			break
 		}
 		log.Printf("failed to ping database: %v (attempt %d)", err, i+1)

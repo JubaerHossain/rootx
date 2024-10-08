@@ -42,7 +42,7 @@ func NewMySQLService(cfg *config.Config) (*MySQLService, error) {
 func testConnection(db *sql.DB) error {
 	for i := 0; i < 3; i++ { // Retry logic
 		if err := db.Ping(); err == nil {
-			log.Println("connected to database")
+			log.Println("connected to mysql database")
 			return nil
 		}
 		log.Printf("failed to ping database"+" (attempt %d)", i+1)
