@@ -2,55 +2,99 @@ package limiter
 
 import (
 	"sync"
+	"time"
 
 	"golang.org/x/time/rate"
 )
 
-// IPRateLimiter .
-type IPRateLimiter struct {
-	ips map[string]*rate.Limiter
-	mu  *sync.RWMutex
-	r   rate.Limit
-	b   int
+type limiterEntry struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
 }
 
-// NewIPRateLimiter .
+// IPRateLimiter handles rate limiting by IP address
+type IPRateLimiter struct {
+	ips    map[string]*limiterEntry
+	mu     *sync.RWMutex
+	r      rate.Limit
+	b      int
+	maxAge time.Duration
+}
+
+// NewIPRateLimiter creates a new IP rate limiter with cleanup routine
 func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 	i := &IPRateLimiter{
-		ips: make(map[string]*rate.Limiter),
-		mu:  &sync.RWMutex{},
-		r:   r,
-		b:   b,
+		ips:    make(map[string]*limiterEntry),
+		mu:     &sync.RWMutex{},
+		r:      r,
+		b:      b,
+		maxAge: time.Hour, // Cleanup entries older than 1 hour
 	}
+
+	// Start cleanup routine
+	go i.cleanupRoutine()
 
 	return i
 }
 
-// AddIP creates a new rate limiter and adds it to the ips map,
-// using the IP address as the key
+// AddIP creates a new rate limiter and adds it to the ips map
 func (i *IPRateLimiter) AddIP(ip string) *rate.Limiter {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
 	limiter := rate.NewLimiter(i.r, i.b)
-
-	i.ips[ip] = limiter
+	entry := &limiterEntry{
+		limiter:  limiter,
+		lastSeen: time.Now(),
+	}
+	i.ips[ip] = entry
 
 	return limiter
 }
 
-// GetLimiter returns the rate limiter for the provided IP address if it exists.
-// Otherwise calls AddIP to add IP address to the map
+// GetLimiter returns the rate limiter for the provided IP address
 func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
-	i.mu.Lock()
-	limiter, exists := i.ips[ip]
+	i.mu.RLock()
+	entry, exists := i.ips[ip]
+	i.mu.RUnlock()
 
 	if !exists {
-		i.mu.Unlock()
 		return i.AddIP(ip)
 	}
 
+	// Update last seen time
+	i.mu.Lock()
+	entry.lastSeen = time.Now()
 	i.mu.Unlock()
 
-	return limiter
+	return entry.limiter
+}
+
+// cleanupRoutine removes old entries periodically
+func (i *IPRateLimiter) cleanupRoutine() {
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		i.cleanup()
+	}
+}
+
+// cleanup removes entries that haven't been used recently
+func (i *IPRateLimiter) cleanup() {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	for ip, entry := range i.ips {
+		if time.Since(entry.lastSeen) > i.maxAge {
+			delete(i.ips, ip)
+		}
+	}
+}
+
+// GetIPCount returns the current number of IP limiters
+func (i *IPRateLimiter) GetIPCount() int {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+	return len(i.ips)
 }

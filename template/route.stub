@@ -14,7 +14,7 @@ func {{SingularCapitalName}}Router(router *http.ServeMux, application *app.App) 
 
 	router.Handle("GET /{{PluralLowerName}}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Get{{PluralCapitalName}})))
 	router.Handle("POST /{{PluralLowerName}}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Create{{SingularCapitalName}})))
-	router.Handle("GET /{{PluralLowerName}}/{id}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Get{{SingularCapitalName}}Details)))
+	router.Handle("GET /{{PluralLowerName}}/{id}/details", middleware.LimiterMiddleware(http.HandlerFunc(handler.Get{{SingularCapitalName}}Details)))
 	router.Handle("PUT /{{PluralLowerName}}/{id}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Update{{SingularCapitalName}})))
 	router.Handle("DELETE /{{PluralLowerName}}/{id}", middleware.LimiterMiddleware(http.HandlerFunc(handler.Delete{{SingularCapitalName}})))
    

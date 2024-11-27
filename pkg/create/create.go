@@ -510,7 +510,7 @@ func ApplyMigrations(cmd *cobra.Command, args []string) error {
 
 	migrationsDir := "migrations"
 	if err := executeScriptsInDirectory(pool, migrationsDir); err != nil {
-		return fmt.Errorf("failed to execute migration scripts")
+		return fmt.Errorf("failed to execute migration scripts %w", err)
 	}
 
 	bar := CreateProgressBar("migration: ")
